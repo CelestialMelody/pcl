@@ -409,6 +409,9 @@ class SampleConsensusModelPlaneTest : private SampleConsensusModelPlane<PointT>
 #if defined (__AVX__) && defined (__AVX2__)
     using SampleConsensusModelPlane<PointT>::countWithinDistanceAVX;
 #endif
+#if defined (__RVV10__)
+    using SampleConsensusModelPlane<PointT>::countWithinDistanceRVV;
+#endif
 };
 
 TEST (SampleConsensusModelPlane, SIMD_countWithinDistance) // Test if all countWithinDistance implementations return the same value
@@ -455,6 +458,10 @@ TEST (SampleConsensusModelPlane, SIMD_countWithinDistance) // Test if all countW
     const auto res_avx      = model.countWithinDistanceAVX (model_coefficients, threshold); // AVX
     ASSERT_EQ (res_standard, res_avx);
 #endif
+#if defined (__RVV10__)
+    const auto res_rvv      = model.countWithinDistanceRVV (model_coefficients, threshold); // RVV
+    ASSERT_EQ (res_standard, res_rvv);
+#endif
   }
 }
 
@@ -472,6 +479,9 @@ class SampleConsensusModelNormalPlaneTest : private SampleConsensusModelNormalPl
 #endif
 #if defined (__AVX__) && defined (__AVX2__)
     using SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceAVX;
+#endif
+#if defined (__RVV10__)
+    using SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceRVV;
 #endif
 };
 
@@ -505,7 +515,7 @@ TEST (SampleConsensusModelNormalPlane, SIMD_countWithinDistance) // Test if all 
       }
     }
     SampleConsensusModelNormalPlaneTest<PointXYZ, Normal> model (cloud.makeShared (), indices, true);
-    
+
     const double normal_distance_weight = 0.3 * static_cast<double> (rand ()) / RAND_MAX; // in [0; 0.3]
     model.setNormalDistanceWeight (normal_distance_weight);
     model.setInputNormals (normal_cloud.makeShared ());
@@ -521,7 +531,7 @@ TEST (SampleConsensusModelNormalPlane, SIMD_countWithinDistance) // Test if all 
     const double threshold = 0.1 * static_cast<double> (rand ()) / RAND_MAX; // threshold in [0; 0.1]
 
     // The number of inliers is usually somewhere between 0 and 100
-    const auto res_standard = model.countWithinDistanceStandard (model_coefficients, threshold); // Standard
+    const auto res_standard = model.countWithinDistanceStandard (model_coefficients, thcountWithinDistanceStandardreshold); // Standard
     pcl::utils::ignore(res_standard);
 #if defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
     const auto res_sse      = model.countWithinDistanceSSE (model_coefficients, threshold); // SSE
@@ -532,6 +542,12 @@ TEST (SampleConsensusModelNormalPlane, SIMD_countWithinDistance) // Test if all 
 #if defined (__AVX__) && defined (__AVX2__)
     const auto res_avx      = model.countWithinDistanceAVX (model_coefficients, threshold); // AVX
     EXPECT_LE ((res_standard > res_avx ? res_standard - res_avx : res_avx - res_standard), 2u) << "seed=" << seed << ", i=" << i
+        << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
+        << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
+#endif
+#if defined (__RVV10__)
+    const auto res_rvv      = model.countWithinDistanceRVV (model_coefficients, threshold); // RVV
+    EXPECT_LE ((res_standard > res_rvv ? res_standard - res_rvv : res_rvv - res_standard), 2u) << "seed=" << seed << ", i=" << i
         << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
         << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
 #endif

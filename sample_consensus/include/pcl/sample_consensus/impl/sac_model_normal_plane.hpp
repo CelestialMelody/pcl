@@ -4,7 +4,7 @@
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2009-2010, Willow Garage, Inc.
  *  Copyright (c) 2012-, Open Perception, Inc.
- *  
+ *
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::selectWithinDistance (
     // Weight with the point curvature. On flat surfaces, curvature -> 0, which means the normal will have a higher influence
     double weight = normal_distance_weight_ * (1.0 - nt.curvature);
 
-    double distance = std::abs (weight * d_normal + (1.0 - weight) * d_euclid); 
+    double distance = std::abs (weight * d_normal + (1.0 - weight) * d_euclid);
     if (distance < threshold)
     {
       // Returns the indices of the points whose distances are smaller than the threshold
@@ -119,6 +119,8 @@ pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistance (
   return countWithinDistanceAVX (model_coefficients, threshold);
 #elif defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
   return countWithinDistanceSSE (model_coefficients, threshold);
+#elif defined (__RVV10__)
+  return countWithinDistanceRVV (model_coefficients, threshold);
 #else
   return countWithinDistanceStandard (model_coefficients, threshold);
 #endif
@@ -286,6 +288,113 @@ pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceAVX (
   return (nr_p);
 }
 #endif
+
+#if defined (__RVV10__)
+template <typename PointT, typename PointNT> std::size_t
+pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceRVV (
+      const Eigen::VectorXf &model_coefficients, const double threshold, std::size_t i) const
+{
+  std::size_t nr_p = 0;
+  const std::size_t total_n = indices_->size();
+
+  // Plane coefficients
+  const float a = model_coefficients[0];
+  const float b = model_coefficients[1];
+  const float c = model_coefficients[2];
+  const float d = model_coefficients[3];
+
+  // Threshold and Weights
+  // Explicitly cast to float because RVV operations will occur in single precision.
+  const float th = static_cast<float>(threshold);
+  const float w_scalar = static_cast<float>(normal_distance_weight_);
+
+  // Pointer to the start of the indices vector
+  const pcl::index_t* indices_ptr = indices_->data();
+
+  // Pointers to the start of PointT and PointNT data arrays.
+  // We use reinterpret_cast<const uint8_t*> to perform precise byte-level
+  // pointer arithmetic later (base + offset).
+  const uint8_t* points_base = reinterpret_cast<const uint8_t*>(input_->points.data());
+  const uint8_t* normals_base = reinterpret_cast<const uint8_t*>(normals_->points.data());
+
+  // Loop through all points using RVV strip-mining.
+  for (; i < total_n; ) {
+
+    // Configure Vector Length (Strip-mining)
+    // Ask hardware to process as many elements as possible (up to VLMAX)
+    // based on the remaining count (total_n - i).
+    // e32m2: Element width 32-bit, Register Grouping (LMUL) = 2.
+    const size_t vl = __riscv_vsetvl_e32m2(total_n - i);
+
+    // Load Indices Once
+    // Load 'vl' indices from the indices vector.
+    // These indices will be reused for both Point gathering and Normal gathering.
+    const vuint32m2_t v_idx = __riscv_vle32_v_u32m2((const uint32_t*)(indices_ptr + i), vl);
+
+    // Broadcast Coefficients
+    // Replicate scalar plane coefficients into vector registers.
+    const vfloat32m2_t v_a = __riscv_vfmv_v_f_f32m2(a, vl);
+    const vfloat32m2_t v_b = __riscv_vfmv_v_f_f32m2(b, vl);
+    const vfloat32m2_t v_c = __riscv_vfmv_v_f_f32m2(c, vl);
+    const vfloat32m2_t v_d = __riscv_vfmv_v_f_f32m2(d, vl);
+
+    // Calculate byte offsets for PointT: offset = index * sizeof(PointT)
+    const vuint32m2_t v_off_pt = __riscv_vmul_vx_u32m2(v_idx, sizeof(PointT), vl);
+
+    // Gather X, Y, Z coordinates using Unordered Indexed Load (vluxei32).
+    // The base address is adjusted by the struct member offset (offsetof).
+    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, x)), v_off_pt, vl);
+    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, y)), v_off_pt, vl);
+    const vfloat32m2_t v_pz = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, z)), v_off_pt, vl);
+
+    // Calculate Euclidean distance using the math kernel helper.
+    // Data is already in registers, avoiding re-fetching.
+    const vfloat32m2_t v_d_euc = pcl::SampleConsensusModelPlane<PointT>::distRVV(v_px, v_py, v_pz, v_a, v_b, v_c, v_d, vl);
+
+    // Calculate byte offsets for PointNT.
+    // Note: PointNT size might differ from PointT, but we reuse v_idx.
+    const vuint32m2_t v_off_norm = __riscv_vmul_vx_u32m2(v_idx, sizeof(PointNT), vl);
+
+    // Gather Normal components and Curvature.
+    const vfloat32m2_t v_nx = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, normal_x)), v_off_norm, vl);
+    const vfloat32m2_t v_ny = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, normal_y)), v_off_norm, vl);
+    const vfloat32m2_t v_nz = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, normal_z)), v_off_norm, vl);
+    const vfloat32m2_t v_curv = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, curvature)), v_off_norm, vl);
+
+    // Calculate the acute angle between point normal and plane normal.
+    // (Assumes getAcuteAngle3DRVV is implemented similarly to the SSE/AVX versions)
+    const vfloat32m2_t v_d_norm = pcl::getAcuteAngle3DRVV(v_nx, v_ny, v_nz, v_a, v_b, v_c, vl);
+
+    // Calculate weight: weight = w_scalar * (1.0 - curvature)
+    const vfloat32m2_t v_w = __riscv_vfmul_vf_f32m2(
+                          __riscv_vfrsub_vf_f32m2(v_curv, 1.0f, vl),
+                          w_scalar,
+                          vl);
+
+    // Calculate final distance: dist = w * d_norm + (1 - w) * d_euc
+    vfloat32m2_t v_dist = __riscv_vfmacc_vv_f32m2(
+                            __riscv_vfmul_vv_f32m2(v_w, v_d_norm, vl),
+                            __riscv_vfrsub_vf_f32m2(v_w, 1.0f, vl),
+                            v_d_euc,
+                            vl);
+    v_dist = __riscv_vfsgnjx_vv_f32m2(v_dist, v_dist, vl); // Absolute value
+
+    // Create a boolean mask where dist < threshold.
+    // vmflt.vf: Vector Mask Float Less-Than Scalar.
+    const vbool16_t v_mask = __riscv_vmflt_vf_f32m2_b16(v_dist, th, vl);
+
+    // Count the set bits in the mask (Population Count).
+    nr_p += __riscv_vcpop_m_b16(v_mask, vl);
+
+    // Advance the loop index by the number of processed elements (vl).
+    i += vl;
+  }
+
+  // RVV is Vector Length Agnostic, and there are no remaining points that need to be processed using countWithinDistanceStandard.
+
+  return nr_p;
+}
+#endif // defined (__RVV10__)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT, typename PointNT> void

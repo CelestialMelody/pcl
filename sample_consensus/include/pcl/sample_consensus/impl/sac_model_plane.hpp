@@ -174,9 +174,9 @@ pcl::SampleConsensusModelPlane<PointT>::selectWithinDistance (
                         (*input_)[(*indices_)[i]].y,
                         (*input_)[(*indices_)[i]].z,
                         1.0f);
-    
+
     float distance = std::abs (model_coefficients.dot (pt));
-    
+
     if (distance < threshold)
     {
       // Returns the indices of the points whose distances are smaller than the threshold
@@ -201,6 +201,8 @@ pcl::SampleConsensusModelPlane<PointT>::countWithinDistance (
   return countWithinDistanceAVX (model_coefficients, threshold);
 #elif defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
   return countWithinDistanceSSE (model_coefficients, threshold);
+#elif defined (__RVV10__)
+  return countWithinDistanceRVV (model_coefficients, threshold);
 #else
   return countWithinDistanceStandard (model_coefficients, threshold);
 #endif
@@ -307,6 +309,78 @@ pcl::SampleConsensusModelPlane<PointT>::countWithinDistanceAVX (
 }
 #endif
 
+//////////////////////////////////////////////////////////////////////////
+#if defined (__RVV10__)
+
+template <typename PointT> std::size_t
+pcl::SampleConsensusModelPlane<PointT>::countWithinDistanceRVV (
+      const Eigen::VectorXf &model_coefficients, const double threshold, std::size_t i) const
+{
+  std::size_t nr_p = 0;
+  const std::size_t total_n = indices_->size();
+
+  // Extract plane coefficients: ax + by + cz + d = 0
+  const float a = model_coefficients[0];
+  const float b = model_coefficients[1];
+  const float c = model_coefficients[2];
+  const float d = model_coefficients[3];
+
+  // Cast threshold to float for vector comparison
+  const float t = static_cast<float>(threshold);
+
+  // Get the raw pointer to the indices array
+  const pcl::index_t* indices_ptr = indices_->data();
+
+  // Get the base pointer to the point cloud data.
+  // We use reinterpret_cast<const uint8_t*> to enable precise byte-level
+  // pointer arithmetic (base + offset) later.
+  const uint8_t* points_base = reinterpret_cast<const uint8_t*>(input_->points.data());
+
+  // Loop through all points. Unlike AVX, we don't need a separate scalar loop
+  // for the "tail" because vsetvl handles arbitrary lengths automatically.
+  for (; i < total_n; ) {
+
+    // Ask the hardware to process as many elements as possible (vl)
+    // based on the remaining number of points (total_n - i).
+    // e32m2: Element width 32-bit, Register Grouping (LMUL) = 2.
+    const size_t vl = __riscv_vsetvl_e32m2(total_n - i);
+
+    // Load 'vl' indices from the index vector into a vector register.
+    const vuint32m2_t v_idx = __riscv_vle32_v_u32m2((const uint32_t*)(indices_ptr + i), vl);
+
+    // Replicate scalar coefficients into vector registers for parallel computation.
+    const vfloat32m2_t v_a = __riscv_vfmv_v_f_f32m2(a, vl);
+    const vfloat32m2_t v_b = __riscv_vfmv_v_f_f32m2(b, vl);
+    const vfloat32m2_t v_c = __riscv_vfmv_v_f_f32m2(c, vl);
+    const vfloat32m2_t v_d = __riscv_vfmv_v_f_f32m2(d, vl);
+
+    // Compute byte offset for each point: offset = index * sizeof(PointT)
+    const vuint32m2_t v_off_pt = __riscv_vmul_vx_u32m2(v_idx, sizeof(PointT), vl);
+
+    // Use Unordered Indexed Load (vluxei32) to load X, Y, Z from non-contiguous memory.
+    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, x)), v_off_pt, vl);
+    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, y)), v_off_pt, vl);
+    const vfloat32m2_t v_pz = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, z)), v_off_pt, vl);
+
+    // Calculate |ax + by + cz + d|.
+    // We call the pure math kernel 'distRVV' defined in the base class.
+    const vfloat32m2_t v_dist = distRVV(v_px, v_py, v_pz, v_a, v_b, v_c, v_d, vl);
+
+    // Generate a boolean mask where dist < threshold.
+    // Equivalent to AVX: _mm256_cmp_ps(..., _CMP_LT_OQ)
+    const vbool16_t v_mask = __riscv_vmflt_vf_f32m2_b16(v_dist, t, vl);
+
+    // Count the number of set bits (1s) in the mask directly.
+    // Equivalent to AVX's complex movemask or vector accumulation, but done in one instruction.
+    nr_p += __riscv_vcpop_m_b16(v_mask, vl);
+
+    i += vl;
+  }
+
+  return nr_p;
+}
+
+#endif
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
 pcl::SampleConsensusModelPlane<PointT>::optimizeModelCoefficients (

@@ -98,8 +98,8 @@ namespace pcl
         * \param[in] cloud the input point cloud dataset
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelNormalPlane (const PointCloudConstPtr &cloud, 
-                                       bool random = false) 
+      SampleConsensusModelNormalPlane (const PointCloudConstPtr &cloud,
+                                       bool random = false)
         : SampleConsensusModelPlane<PointT> (cloud, random)
         , SampleConsensusModelFromNormals<PointT, PointNT> ()
       {
@@ -113,9 +113,9 @@ namespace pcl
         * \param[in] indices a vector of point indices to be used from \a cloud
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelNormalPlane (const PointCloudConstPtr &cloud, 
+      SampleConsensusModelNormalPlane (const PointCloudConstPtr &cloud,
                                        const Indices &indices,
-                                       bool random = false) 
+                                       bool random = false)
         : SampleConsensusModelPlane<PointT> (cloud, indices, random)
         , SampleConsensusModelFromNormals<PointT, PointNT> ()
       {
@@ -123,7 +123,7 @@ namespace pcl
         sample_size_ = 3;
         model_size_ = 4;
       }
-      
+
       /** \brief Empty destructor */
       ~SampleConsensusModelNormalPlane () override = default;
 
@@ -132,13 +132,13 @@ namespace pcl
         * \param[in] threshold a maximum admissible distance threshold for determining the inliers from the outliers
         * \param[out] inliers the resultant model inliers
         */
-      void 
-      selectWithinDistance (const Eigen::VectorXf &model_coefficients, 
-                            const double threshold, 
+      void
+      selectWithinDistance (const Eigen::VectorXf &model_coefficients,
+                            const double threshold,
                             Indices &inliers) override;
 
-      /** \brief Count all the points which respect the given model coefficients as inliers. 
-        * 
+      /** \brief Count all the points which respect the given model coefficients as inliers.
+        *
         * \param[in] model_coefficients the coefficients of a model that we need to compute distances to
         * \param[in] threshold maximum admissible distance threshold for determining the inliers from the outliers
         * \return the resultant number of inliers
@@ -156,7 +156,7 @@ namespace pcl
                            std::vector<double> &distances) const override;
 
       /** \brief Return a unique id for this model (SACMODEL_NORMAL_PLANE). */
-      inline pcl::SacModel 
+      inline pcl::SacModel
       getModelType () const override { return (SACMODEL_NORMAL_PLANE); }
 
     	PCL_MAKE_ALIGNED_OPERATOR_NEW
@@ -191,6 +191,16 @@ namespace pcl
       countWithinDistanceAVX (const Eigen::VectorXf &model_coefficients,
                               const double threshold,
                               std::size_t i = 0) const;
+#endif
+
+#if defined (__RVV10__)
+  /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
+    * See countWithinDistance which automatically uses the fastest implementation.
+    */
+    std::size_t
+    countWithinDistanceRVV (const Eigen::VectorXf &model_coefficients,
+                            const double threshold,
+                            std::size_t i = 0) const;
 #endif
   };
 }
