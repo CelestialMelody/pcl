@@ -119,6 +119,55 @@ pcl::getAcuteAngle3DAVX (const __m256 &x1, const __m256 &y1, const __m256 &z1, c
 }
 #endif // ifdef __AVX__
 
+#ifdef __RVV10__
+inline vfloat32m2_t
+pcl::acos_RVV(const vfloat32m2_t& x, const std::size_t vl)
+{
+  // Coefficients (broadcasted)
+  const vfloat32m2_t a0 = __riscv_vfmv_v_f_f32m2(1.59121552f, vl);
+  const vfloat32m2_t a1 = __riscv_vfmv_v_f_f32m2(-0.15461442f, vl);
+  const vfloat32m2_t a2 = __riscv_vfmv_v_f_f32m2(0.05354897f, vl);
+  const vfloat32m2_t b0 = __riscv_vfmv_v_f_f32m2(0.89286965f, vl);
+  const vfloat32m2_t b1 = __riscv_vfmv_v_f_f32m2(-0.89282669f, vl);
+  const vfloat32m2_t c0 = __riscv_vfmv_v_f_f32m2(0.06681017f, vl);
+  const vfloat32m2_t c1 = __riscv_vfmv_v_f_f32m2(-0.09402311f, vl);
+  const vfloat32m2_t c2 = __riscv_vfmv_v_f_f32m2(0.02708663f, vl);
+
+  // mul_term = a0 + x*(a1 + x*a2)
+  const vfloat32m2_t mul_term = __riscv_vfmacc_vv_f32m2(a0, x, __riscv_vfmacc_vv_f32m2(a1, x, a2, vl), vl);
+
+  // sqrt_term = sqrt(b0 + x*b1)
+  const vfloat32m2_t sqrt_term = __riscv_vfsqrt_v_f32m2(__riscv_vfmacc_vv_f32m2(b0, x, b1, vl), vl);
+
+  // add_term = c0 + x*(c1 + x*c2)
+  const vfloat32m2_t add_term = __riscv_vfmacc_vv_f32m2(c0, x, __riscv_vfmacc_vv_f32m2(c1, x, c2, vl), vl);
+
+  // result = mul_term * sqrt_term + add_term
+  return __riscv_vfmacc_vv_f32m2(add_term, mul_term, sqrt_term, vl);
+}
+
+inline vfloat32m2_t
+pcl::getAcuteAngle3DRVV(const vfloat32m2_t& x1, const vfloat32m2_t& y1, const vfloat32m2_t& z1,
+                        const vfloat32m2_t& x2, const vfloat32m2_t& y2, const vfloat32m2_t& z2, const std::size_t vl)
+{
+  // dot = x1*x2 + y1*y2 + z1*z2
+  const vfloat32m2_t dot = __riscv_vfmacc_vv_f32m2(
+      __riscv_vfmacc_vv_f32m2(
+          __riscv_vfmul_vv_f32m2(x1, x2, vl),
+          y1, y2, vl),
+      z1, z2, vl);
+
+  // Compute Absolute Value
+  // Use vfsgnjx (Floating-point Sign Injection - XOR) with itself.
+  const vfloat32m2_t dot_abs = __riscv_vfsgnjx_vv_f32m2(dot, dot, vl);
+
+  // Clamp to [0, 1]
+  const vfloat32m2_t dot_clamped = __riscv_vfmin_vf_f32m2(dot_abs, 1.0f, vl);
+
+  return acos_RVV(dot_clamped, vl);
+}
+#endif // ifdef __RVV10__
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 inline void
 pcl::getMeanStd (const std::vector<float> &values, double &mean, double &stddev)
@@ -126,9 +175,9 @@ pcl::getMeanStd (const std::vector<float> &values, double &mean, double &stddev)
   // throw an exception when the input array is empty
   if (values.empty ())
   {
-    PCL_THROW_EXCEPTION (BadArgumentException, "Input array must have at least 1 element."); 
+    PCL_THROW_EXCEPTION (BadArgumentException, "Input array must have at least 1 element.");
   }
-  
+
   // when the array has only one element, mean is the number itself and standard dev is 0
   if (values.size () == 1)
   {
@@ -136,7 +185,7 @@ pcl::getMeanStd (const std::vector<float> &values, double &mean, double &stddev)
     stddev = 0;
     return;
   }
-  
+
   double sum = 0, sq_sum = 0;
 
   for (const float &value : values)
@@ -151,7 +200,7 @@ pcl::getMeanStd (const std::vector<float> &values, double &mean, double &stddev)
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT> inline void
-pcl::getPointsInBox (const pcl::PointCloud<PointT> &cloud, 
+pcl::getPointsInBox (const pcl::PointCloud<PointT> &cloud,
                      Eigen::Vector4f &min_pt, Eigen::Vector4f &max_pt,
                      Indices &indices)
 {
@@ -177,8 +226,8 @@ pcl::getPointsInBox (const pcl::PointCloud<PointT> &cloud,
     for (std::size_t i = 0; i < cloud.size (); ++i)
     {
       // Check if the point is invalid
-      if (!std::isfinite (cloud[i].x) || 
-          !std::isfinite (cloud[i].y) || 
+      if (!std::isfinite (cloud[i].x) ||
+          !std::isfinite (cloud[i].y) ||
           !std::isfinite (cloud[i].z))
         continue;
       // Check if the point is inside bounds
@@ -367,8 +416,8 @@ pcl::getMinMax3D (const pcl::PointCloud<PointT> &cloud, const Indices &indices,
     for (const auto &index : indices)
     {
       // Check if the point is invalid
-      if (!std::isfinite (cloud[index].x) || 
-          !std::isfinite (cloud[index].y) || 
+      if (!std::isfinite (cloud[index].x) ||
+          !std::isfinite (cloud[index].y) ||
           !std::isfinite (cloud[index].z))
         continue;
       const pcl::Vector4fMapConst pt = cloud[index].getVector4fMap ();
@@ -379,7 +428,7 @@ pcl::getMinMax3D (const pcl::PointCloud<PointT> &cloud, const Indices &indices,
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT> inline double 
+template <typename PointT> inline double
 pcl::getCircumcircleRadius (const PointT &pa, const PointT &pb, const PointT &pc)
 {
   Eigen::Vector4f p1 (pa.x, pa.y, pa.z, 0);
@@ -387,7 +436,7 @@ pcl::getCircumcircleRadius (const PointT &pa, const PointT &pb, const PointT &pc
   Eigen::Vector4f p3 (pc.x, pc.y, pc.z, 0);
 
   double p2p1 = (p2 - p1).norm (), p3p2 = (p3 - p2).norm (), p1p3 = (p1 - p3).norm ();
-  // Calculate the area of the triangle using Heron's formula 
+  // Calculate the area of the triangle using Heron's formula
   // (https://en.wikipedia.org/wiki/Heron's_formula)
   double semiperimeter = (p2p1 + p3p2 + p1p3) / 2.0;
   double area = sqrt (semiperimeter * (semiperimeter - p2p1) * (semiperimeter - p3p2) * (semiperimeter - p1p3));
@@ -396,7 +445,7 @@ pcl::getCircumcircleRadius (const PointT &pa, const PointT &pb, const PointT &pc
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT> inline void 
+template <typename PointT> inline void
 pcl::getMinMax (const PointT &histogram, int len, float &min_p, float &max_p)
 {
   min_p = std::numeric_limits<float>::max();
@@ -404,21 +453,21 @@ pcl::getMinMax (const PointT &histogram, int len, float &min_p, float &max_p)
 
   for (int i = 0; i < len; ++i)
   {
-    min_p = (histogram[i] > min_p) ? min_p : histogram[i]; 
-    max_p = (histogram[i] < max_p) ? max_p : histogram[i]; 
+    min_p = (histogram[i] > min_p) ? min_p : histogram[i];
+    max_p = (histogram[i] < max_p) ? max_p : histogram[i];
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT> inline float
-pcl::calculatePolygonArea (const pcl::PointCloud<PointT> &polygon) 
+pcl::calculatePolygonArea (const pcl::PointCloud<PointT> &polygon)
 {
   float area = 0.0f;
   int num_points = polygon.size ();
   Eigen::Vector3f va,vb,res;
 
   res(0) = res(1) = res(2) = 0.0f;
-  for (int i = 0; i < num_points; ++i) 
+  for (int i = 0; i < num_points; ++i)
   {
     int j = (i + 1) % num_points;
     va = polygon[i].getVector3fMap ();

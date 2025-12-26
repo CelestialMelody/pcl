@@ -43,6 +43,9 @@
 #ifdef __AVX__
 #include <immintrin.h> // for __m256
 #endif // ifdef __AVX__
+#ifdef __RVV10__
+#include <riscv_vector.h> // for RISC-V Vector intrinsics
+#endif // ifdef __RVV10__
 
 #include <pcl/point_cloud.h> // for PointCloud
 #include <pcl/PointIndices.h> // for PointIndices
@@ -65,7 +68,7 @@ namespace pcl
     * \note Handles rounding error for parallel and anti-parallel vectors
     * \ingroup common
     */
-  inline double 
+  inline double
   getAngle3D (const Eigen::Vector4f &v1, const Eigen::Vector4f &v2, const bool in_degree = false);
 
   /** \brief Compute the smallest angle between two 3D vectors in radians (default) or degree.
@@ -140,13 +143,46 @@ namespace pcl
   getAcuteAngle3DAVX (const __m256 &x1, const __m256 &y1, const __m256 &z1, const __m256 &x2, const __m256 &y2, const __m256 &z2);
 #endif // ifdef __AVX__
 
+#ifdef __RVV10__
+  /**
+   * \brief Compute the approximate arccosine of multiple values at once using RISC-V
+   * Vector instructions.
+   *
+   * The approximation used is:
+   * \f$
+   * (1.59121552+x*(-0.15461442+x*0.05354897))*\sqrt{0.89286965-0.89282669*x}+0.06681017+x*(-0.09402311+x*0.02708663)
+   * \f$ The average error is ~0.00012 rad.
+   * \param x input vector of floats in [0; 1]
+   * \param vl vector length
+   * \return vector of acos(x) in [0; pi/2]
+   * \ingroup common
+   */
+  inline vfloat32m2_t
+  acos_RVV(const vfloat32m2_t& x, const std::size_t vl);
+
+  /**
+   * \brief Compute acute angles between two sets of normalized 3D vectors using RVV.
+   *
+   * This behaves like min(angle, π - angle), returning values in [0; π/2].
+   * All input vectors must be normalized.
+   * \param[in] x1, y1, z1 components of first set of unit vectors
+   * \param[in] x2, y2, z2 components of second set of unit vectors
+   * \param vl vector length
+   * \return vector of acute angles in radians
+   * \ingroup common
+   */
+  inline vfloat32m2_t
+  getAcuteAngle3DRVV(const vfloat32m2_t& x1, const vfloat32m2_t& y1, const vfloat32m2_t& z1,
+                     const vfloat32m2_t& x2, const vfloat32m2_t& y2, const vfloat32m2_t& z2, const std::size_t vl);
+#endif // ifdef __RISCV_RVV__
+
   /** \brief Compute both the mean and the standard deviation of an array of values
     * \param values the array of values
     * \param mean the resultant mean of the distribution
     * \param stddev the resultant standard deviation of the distribution
     * \ingroup common
     */
-  inline void 
+  inline void
   getMeanStd (const std::vector<float> &values, double &mean, double &stddev);
 
   /** \brief Get a set of points residing in a box given its bounds
@@ -156,7 +192,7 @@ namespace pcl
     * \param indices the resultant set of point indices residing in the box
     * \ingroup common
     */
-  template <typename PointT> inline void 
+  template <typename PointT> inline void
   getPointsInBox (const pcl::PointCloud<PointT> &cloud, Eigen::Vector4f &min_pt,
                   Eigen::Vector4f &max_pt, Indices &indices);
 
@@ -186,17 +222,17 @@ namespace pcl
     * \param[out] max_pt the resultant maximum bounds
     * \ingroup common
     */
-  template <typename PointT> inline void 
+  template <typename PointT> inline void
   getMinMax3D (const pcl::PointCloud<PointT> &cloud, PointT &min_pt, PointT &max_pt);
-  
+
   /** \brief Get the minimum and maximum values on each of the 3 (x-y-z) dimensions in a given pointcloud. This is the axis aligned bounding box (AABB).
     * \param[in] cloud the point cloud data message
     * \param[out] min_pt the resultant minimum bounds
     * \param[out] max_pt the resultant maximum bounds
     * \ingroup common
     */
-  template <typename PointT> inline void 
-  getMinMax3D (const pcl::PointCloud<PointT> &cloud, 
+  template <typename PointT> inline void
+  getMinMax3D (const pcl::PointCloud<PointT> &cloud,
                Eigen::Vector4f &min_pt, Eigen::Vector4f &max_pt);
 
   /** \brief Get the minimum and maximum values on each of the 3 (x-y-z) dimensions in a given pointcloud. This is the axis aligned bounding box (AABB).
@@ -206,7 +242,7 @@ namespace pcl
     * \param[out] max_pt the resultant maximum bounds
     * \ingroup common
     */
-  template <typename PointT> inline void 
+  template <typename PointT> inline void
   getMinMax3D (const pcl::PointCloud<PointT> &cloud, const Indices &indices,
                Eigen::Vector4f &min_pt, Eigen::Vector4f &max_pt);
 
@@ -217,7 +253,7 @@ namespace pcl
     * \param[out] max_pt the resultant maximum bounds
     * \ingroup common
     */
-  template <typename PointT> inline void 
+  template <typename PointT> inline void
   getMinMax3D (const pcl::PointCloud<PointT> &cloud, const pcl::PointIndices &indices,
                Eigen::Vector4f &min_pt, Eigen::Vector4f &max_pt);
 
@@ -228,22 +264,22 @@ namespace pcl
     * \return the radius of the circumscribed circle
     * \ingroup common
     */
-  template <typename PointT> inline double 
+  template <typename PointT> inline double
   getCircumcircleRadius (const PointT &pa, const PointT &pb, const PointT &pc);
 
   /** \brief Get the minimum and maximum values on a point histogram
     * \param histogram the point representing a multi-dimensional histogram
     * \param len the length of the histogram
-    * \param min_p the resultant minimum 
-    * \param max_p the resultant maximum 
+    * \param min_p the resultant minimum
+    * \param max_p the resultant maximum
     * \ingroup common
     */
-  template <typename PointT> inline void 
+  template <typename PointT> inline void
   getMinMax (const PointT &histogram, int len, float &min_p, float &max_p);
 
-  /** \brief Calculate the area of a polygon given a point cloud that defines the polygon 
+  /** \brief Calculate the area of a polygon given a point cloud that defines the polygon
 	  * \param polygon point cloud that contains those vertices that comprises the polygon. Vertices are stored in counterclockwise.
-	  * \return the polygon area 
+	  * \return the polygon area
 	  * \ingroup common
 	  */
   template<typename PointT> inline float
@@ -253,11 +289,11 @@ namespace pcl
     * \param cloud the cloud containing multi-dimensional histograms
     * \param idx point index representing the histogram that we need to compute min/max for
     * \param field_name the field name containing the multi-dimensional histogram
-    * \param min_p the resultant minimum 
-    * \param max_p the resultant maximum 
+    * \param min_p the resultant minimum
+    * \param max_p the resultant maximum
     * \ingroup common
     */
-  PCL_EXPORTS void 
+  PCL_EXPORTS void
   getMinMax (const pcl::PCLPointCloud2 &cloud, int idx, const std::string &field_name,
              float &min_p, float &max_p);
 

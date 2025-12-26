@@ -46,6 +46,9 @@
 #ifdef __AVX__
 #include <immintrin.h> // for __m256
 #endif // ifdef __AVX__
+#ifdef __RVV10__
+#include <riscv_vector.h> // for RVV types and intrinsics
+#endif // ifdef __RVV10__
 
 #include <pcl/sample_consensus/sac_model.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -63,14 +66,14 @@ namespace pcl
   {
     // Calculate the distance from the point to the plane
     Eigen::Vector4f pp (p.x, p.y, p.z, 1);
-    // use normalized coefficients to calculate the scalar projection 
+    // use normalized coefficients to calculate the scalar projection
     float distance_to_plane = pp.dot(model_coefficients);
 
 
     //TODO: Why doesn't getVector4Map work here?
     //Eigen::Vector4f q_e = q.getVector4fMap ();
     //q_e = pp - model_coefficients * distance_to_plane;
-    
+
     Eigen::Vector4f q_e = pp - distance_to_plane * model_coefficients;
     q.x = q_e[0];
     q.y = q_e[1];
@@ -134,7 +137,7 @@ namespace pcl
     *   - \b b : the Y coordinate of the plane's normal (normalized)
     *   - \b c : the Z coordinate of the plane's normal (normalized)
     *   - \b d : the fourth <a href="http://mathworld.wolfram.com/HessianNormalForm.html">Hessian component</a> of the plane's equation
-    * 
+    *
     * \author Radu B. Rusu
     * \ingroup sample_consensus
     */
@@ -159,7 +162,7 @@ namespace pcl
         * \param[in] cloud the input point cloud dataset
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelPlane (const PointCloudConstPtr &cloud, bool random = false) 
+      SampleConsensusModelPlane (const PointCloudConstPtr &cloud, bool random = false)
         : SampleConsensusModel<PointT> (cloud, random)
       {
         model_name_ = "SampleConsensusModelPlane";
@@ -172,16 +175,16 @@ namespace pcl
         * \param[in] indices a vector of point indices to be used from \a cloud
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelPlane (const PointCloudConstPtr &cloud, 
+      SampleConsensusModelPlane (const PointCloudConstPtr &cloud,
                                  const Indices &indices,
-                                 bool random = false) 
+                                 bool random = false)
         : SampleConsensusModel<PointT> (cloud, indices, random)
       {
         model_name_ = "SampleConsensusModelPlane";
         sample_size_ = 3;
         model_size_ = 4;
       }
-      
+
       /** \brief Empty destructor */
       ~SampleConsensusModelPlane () override = default;
 
@@ -208,13 +211,13 @@ namespace pcl
         * \param[in] threshold a maximum admissible distance threshold for determining the inliers from the outliers
         * \param[out] inliers the resultant model inliers
         */
-      void 
-      selectWithinDistance (const Eigen::VectorXf &model_coefficients, 
-                            const double threshold, 
+      void
+      selectWithinDistance (const Eigen::VectorXf &model_coefficients,
+                            const double threshold,
                             Indices &inliers) override;
 
-      /** \brief Count all the points which respect the given model coefficients as inliers. 
-        * 
+      /** \brief Count all the points which respect the given model coefficients as inliers.
+        *
         * \param[in] model_coefficients the coefficients of a model that we need to compute distances to
         * \param[in] threshold maximum admissible distance threshold for determining the inliers from the outliers
         * \return the resultant number of inliers
@@ -257,7 +260,7 @@ namespace pcl
                             const double threshold) const override;
 
       /** \brief Return a unique id for this model (SACMODEL_PLANE). */
-      inline pcl::SacModel 
+      inline pcl::SacModel
       getModelType () const override { return (SACMODEL_PLANE); }
 
     protected:
@@ -291,6 +294,15 @@ namespace pcl
                               const double threshold,
                               std::size_t i = 0) const;
 #endif
+#if defined (__RVV10__)
+      /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
+        * See countWithinDistance which automatically uses the fastest implementation.
+        */
+      std::size_t
+      countWithinDistanceRVV (const Eigen::VectorXf &model_coefficients,
+                              const double threshold,
+                              std::size_t i = 0) const;
+#endif
 
 #define PCLAT(POS) ((*input_)[(*indices_)[(POS)]])
 
@@ -319,6 +331,38 @@ inline __m128 dist4 (const std::size_t i, const __m128 &a_vec, const __m128 &b_v
                                 d_vec))); // TODO this could be replaced by three fmadd-instructions (if available), but the speed gain would probably be minimal
 }
 #endif // ifdef __SSE__
+
+#if defined (__RVV10__)
+/** Pure mathematical kernel for distRVV.
+  * Calculates the perpendicular distance from points to a plane: |ax + by + cz + d|.
+  *
+  * Design Note:
+  * This function does NOT handle memory loading. It expects data to be already
+  * loaded into vector registers. This allows the caller (countWithinDistanceRVV)
+  * to reuse loaded indices for both point and normal data gathering, avoiding
+  * redundant memory traffic.
+  */
+inline vfloat32m2_t
+distRVV (const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec, const vfloat32m2_t &z_vec,
+         const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec, const vfloat32m2_t &c_vec, const vfloat32m2_t &d_vec,
+         std::size_t vl) const
+{
+  // Accumulate dot product: res = a*x + b*y + c*z + d
+  // vfmacc performs: vd = vd + (vs1 * vs2)
+  const vfloat32m2_t res = __riscv_vfmacc_vv_f32m2(
+                        __riscv_vfmacc_vv_f32m2(
+                          __riscv_vfmacc_vv_f32m2(d_vec, a_vec, x_vec, vl),
+                          b_vec, y_vec, vl),
+                        c_vec, z_vec, vl);
+
+  // Compute Absolute Value: abs(res)
+  // Use vfsgnjx (Floating-point Sign Injection - XOR).
+  // XORing the sign bit with itself always results in 0 (positive),
+  // effectively clearing the sign bit without needing a constant 0.0f register.
+  return __riscv_vfsgnjx_vv_f32m2(res, res, vl);
+}
+
+#endif // if defined (__RVV10__)
 
 #undef PCLAT
 
