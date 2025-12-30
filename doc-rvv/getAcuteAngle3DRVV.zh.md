@@ -10,10 +10,10 @@
 
 ### 1.1 `getAcuteAngle3D` 原理
 
-计算两个向量 $\vec{v_1} = (x_1, y_1, z_1)$ 和 $\vec{v_2} = (x_2, y_2, z_2)$ 夹角的公式为：
-
-$$\theta = \arccos \left( \frac{\vec{v_1} \cdot \vec{v_2}}{|\vec{v_1}| |\vec{v_2}|} \right)$$
-
+计算两个向量 $\vec{v_1} = (x_1, y_1, z_1)$ 和 $\vec{v_2} = (x_2, y_2, z_2)$​ 夹角的公式为：
+$$
+\theta = \arccos \left( \frac{\vec{v_1} \cdot \vec{v_2}}{|\vec{v_1}| |\vec{v_2}|} \right)
+$$
 **PCL 的特殊优化假设**：
 
 1. **输入已归一化**：输入的向量要求是单位向量（模长为 1），因此分母 $|\vec{v_1}| |\vec{v_2}| = 1$，省略除法。
@@ -28,8 +28,9 @@ $$\theta = \arccos \left( \frac{\vec{v_1} \cdot \vec{v_2}}{|\vec{v_1}| |\vec{v_2
 
 标准的 `std::acos` 计算非常耗时。PCL 使用了一种基于多项式拟合的近似算法（见代码注释中的 Python 脚本引用），其形式为：
 
-$$\arccos(x) \approx \text{mul\_term}(x) \cdot \sqrt{\text{sqrt\_term}(x)} + \text{add\_term}(x)$$
-
+$$
+\arccos(x) \approx \text{mul\_term}(x) \cdot \sqrt{\text{sqrt\_term}(x)} + \text{add\_term}(x)
+$$
 其中 `mul_term` 和 `add_term` 是关于 $x$ 的二次多项式，这种结构适合 SIMD 并行化。
 
 ------
