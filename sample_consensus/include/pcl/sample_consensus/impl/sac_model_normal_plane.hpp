@@ -343,9 +343,12 @@ pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceRVV (
 
     // Gather X, Y, Z coordinates using Unordered Indexed Load (vluxei32).
     // The base address is adjusted by the struct member offset (offsetof).
-    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, x)), v_off_pt, vl);
-    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, y)), v_off_pt, vl);
-    const vfloat32m2_t v_pz = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, z)), v_off_pt, vl);
+    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2(
+      reinterpret_cast<const float*>(points_base + offsetof(PointT, x)), v_off_pt, vl);
+    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2(
+      reinterpret_cast<const float*>(points_base + offsetof(PointT, y)), v_off_pt, vl);
+    const vfloat32m2_t v_pz = __riscv_vluxei32_v_f32m2(
+      reinterpret_cast<const float*>(points_base + offsetof(PointT, z)), v_off_pt, vl);
 
     // Calculate Euclidean distance using the math kernel helper.
     // Data is already in registers, avoiding re-fetching.
@@ -356,10 +359,14 @@ pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceRVV (
     const vuint32m2_t v_off_norm = __riscv_vmul_vx_u32m2(v_idx, sizeof(PointNT), vl);
 
     // Gather Normal components and Curvature.
-    const vfloat32m2_t v_nx = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, normal_x)), v_off_norm, vl);
-    const vfloat32m2_t v_ny = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, normal_y)), v_off_norm, vl);
-    const vfloat32m2_t v_nz = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, normal_z)), v_off_norm, vl);
-    const vfloat32m2_t v_curv = __riscv_vluxei32_v_f32m2((const float*)(normals_base + offsetof(PointNT, curvature)), v_off_norm, vl);
+    const vfloat32m2_t v_nx = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(normals_base + offsetof(PointNT, normal_x)), v_off_norm, vl);
+    const vfloat32m2_t v_ny = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(normals_base + offsetof(PointNT, normal_y)), v_off_norm, vl);
+    const vfloat32m2_t v_nz = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(normals_base + offsetof(PointNT, normal_z)), v_off_norm, vl);
+    const vfloat32m2_t v_curv = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(normals_base + offsetof(PointNT, curvature)), v_off_norm, vl);
 
     // Calculate the acute angle between point normal and plane normal.
     // (Assumes getAcuteAngle3DRVV is implemented similarly to the SSE/AVX versions)
