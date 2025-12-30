@@ -46,6 +46,9 @@
 #ifdef __AVX__
 #include <immintrin.h> // for __m256
 #endif // ifdef __AVX__
+#ifdef __RVV10__
+#include <riscv_vector.h> // for RVV types and intrinsics
+#endif // ifdef __RVV10__
 
 #include <pcl/sample_consensus/sac_model.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -112,7 +115,7 @@ namespace pcl
         sample_size_ = 4;
         model_size_ = 4;
       }
-      
+
       /** \brief Empty destructor */
       ~SampleConsensusModelSphere () override = default;
 
@@ -136,8 +139,8 @@ namespace pcl
         return *this;
       }
 
-      /** \brief Check whether the given index samples can form a valid sphere model, compute the model 
-        * coefficients from these samples and store them internally in model_coefficients. 
+      /** \brief Check whether the given index samples can form a valid sphere model, compute the model
+        * coefficients from these samples and store them internally in model_coefficients.
         * The sphere coefficients are: x, y, z, R.
         * \param[in] samples the point indices found as possible good candidates for creating a valid model
         * \param[out] model_coefficients the resultant model coefficients
@@ -159,13 +162,13 @@ namespace pcl
         * \param[in] threshold a maximum admissible distance threshold for determining the inliers from the outliers
         * \param[out] inliers the resultant model inliers
         */
-      void 
-      selectWithinDistance (const Eigen::VectorXf &model_coefficients, 
-                            const double threshold, 
+      void
+      selectWithinDistance (const Eigen::VectorXf &model_coefficients,
+                            const double threshold,
                             Indices &inliers) override;
 
-      /** \brief Count all the points which respect the given model coefficients as inliers. 
-        * 
+      /** \brief Count all the points which respect the given model coefficients as inliers.
+        *
         * \param[in] model_coefficients the coefficients of a model that we need to compute distances to
         * \param[in] threshold maximum admissible distance threshold for determining the inliers from the outliers
         * \return the resultant number of inliers
@@ -271,6 +274,16 @@ namespace pcl
                               std::size_t i = 0) const;
 #endif
 
+#if defined (__RVV10__)
+      /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
+        * See countWithinDistance which automatically uses the fastest implementation.
+        */
+      std::size_t
+      countWithinDistanceRVV (const Eigen::VectorXf &model_coefficients,
+                              const double threshold,
+                              std::size_t i = 0) const;
+#endif
+
     private:
 #ifdef __AVX__
       inline __m256 sqr_dist8 (const std::size_t i, const __m256 a_vec, const __m256 b_vec, const __m256 c_vec) const;
@@ -278,6 +291,12 @@ namespace pcl
 
 #ifdef __SSE__
       inline __m128 sqr_dist4 (const std::size_t i, const __m128 a_vec, const __m128 b_vec, const __m128 c_vec) const;
+#endif
+
+#ifdef __RVV10__
+      inline vfloat32m2_t sqr_distRVV (const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec, const vfloat32m2_t &z_vec,
+                                       const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec, const vfloat32m2_t &c_vec,
+                                       const std::size_t vl) const;
 #endif
    };
 }

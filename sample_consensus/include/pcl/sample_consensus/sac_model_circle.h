@@ -46,6 +46,9 @@
 #ifdef __AVX__
 #include <immintrin.h> // for __m256
 #endif // ifdef __AVX__
+#ifdef __RVV10__
+#include <riscv_vector.h> // for RVV types and intrinsics
+#endif // ifdef __RVV10__
 
 #include <pcl/sample_consensus/sac_model.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -58,7 +61,7 @@ namespace pcl
     *   - \b center.x : the X coordinate of the circle's center
     *   - \b center.y : the Y coordinate of the circle's center
     *   - \b radius   : the circle's radius
-    * 
+    *
     * \author Radu B. Rusu
     * \ingroup sample_consensus
    */
@@ -84,7 +87,7 @@ namespace pcl
         * \param[in] cloud the input point cloud dataset
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelCircle2D (const PointCloudConstPtr &cloud, bool random = false) 
+      SampleConsensusModelCircle2D (const PointCloudConstPtr &cloud, bool random = false)
         : SampleConsensusModel<PointT> (cloud, random)
       {
         model_name_ = "SampleConsensusModelCircle2D";
@@ -97,7 +100,7 @@ namespace pcl
         * \param[in] indices a vector of point indices to be used from \a cloud
         * \param[in] random if true set the random seed to the current time, else set to 12345 (default: false)
         */
-      SampleConsensusModelCircle2D (const PointCloudConstPtr &cloud, 
+      SampleConsensusModelCircle2D (const PointCloudConstPtr &cloud,
                                     const Indices &indices,
                                     bool random = false)
         : SampleConsensusModel<PointT> (cloud, indices, random)
@@ -116,7 +119,7 @@ namespace pcl
         *this = source;
         model_name_ = "SampleConsensusModelCircle2D";
       }
-      
+
       /** \brief Empty destructor */
       ~SampleConsensusModelCircle2D () override = default;
 
@@ -152,13 +155,13 @@ namespace pcl
         * \param[in] threshold a maximum admissible distance threshold for determining the inliers from the outliers
         * \param[out] inliers the resultant model inliers
         */
-      void 
-      selectWithinDistance (const Eigen::VectorXf &model_coefficients, 
-                            const double threshold, 
+      void
+      selectWithinDistance (const Eigen::VectorXf &model_coefficients,
+                            const double threshold,
                             Indices &inliers) override;
 
-      /** \brief Count all the points which respect the given model coefficients as inliers. 
-        * 
+      /** \brief Count all the points which respect the given model coefficients as inliers.
+        *
         * \param[in] model_coefficients the coefficients of a model that we need to compute distances to
         * \param[in] threshold maximum admissible distance threshold for determining the inliers from the outliers
         * \return the resultant number of inliers
@@ -201,7 +204,7 @@ namespace pcl
                             const double threshold) const override;
 
       /** \brief Return a unique id for this model (SACMODEL_CIRCLE2D). */
-      inline pcl::SacModel 
+      inline pcl::SacModel
       getModelType () const override { return (SACMODEL_CIRCLE2D); }
 
     protected:
@@ -248,6 +251,16 @@ namespace pcl
                               std::size_t i = 0) const;
 #endif
 
+#if defined (__RVV10__)
+      /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
+        * See countWithinDistance which automatically uses the fastest implementation.
+        */
+      std::size_t
+      countWithinDistanceRVV (const Eigen::VectorXf &model_coefficients,
+                              const double threshold,
+                              std::size_t i = 0) const;
+#endif
+
     private:
       /** \brief Functor for the optimization function */
       struct OptimizationFunctor : pcl::Functor<float>
@@ -264,7 +277,7 @@ namespace pcl
           * \param[out] fvec the resultant functions evaluations
           * \return 0
           */
-        int 
+        int
         operator() (const Eigen::VectorXf &x, Eigen::VectorXf &fvec) const
         {
           for (int i = 0; i < values (); ++i)
@@ -289,6 +302,12 @@ namespace pcl
 
 #ifdef __SSE__
       inline __m128 sqr_dist4 (const std::size_t i, const __m128 a_vec, const __m128 b_vec) const;
+#endif
+
+#ifdef __RVV10__
+      inline vfloat32m2_t sqr_distRVV (const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec,
+                                       const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec,
+                                       const std::size_t vl) const;
 #endif
   };
 }

@@ -135,6 +135,27 @@ template <typename PointT> inline __m128 pcl::SampleConsensusModelCircle2D<Point
 }
 #endif // ifdef __SSE__
 
+#ifdef __RVV10__
+// This function computes the squared distances (i.e. the distances without the square root) of vector-length points to the center of the circle
+template <typename PointT>
+inline vfloat32m2_t
+pcl::SampleConsensusModelCircle2D<PointT>::sqr_distRVV (
+    const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec,
+    const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec,
+    const std::size_t vl) const
+{
+  // dx = x - a
+  const vfloat32m2_t dx = __riscv_vfsub_vv_f32m2(x_vec, a_vec, vl);
+
+  // dy = y - b
+  const vfloat32m2_t dy = __riscv_vfsub_vv_f32m2(y_vec, b_vec, vl);
+
+  // res = dx * dx + (dy * dy)
+  return __riscv_vfmacc_vv_f32m2(
+    __riscv_vfmul_vv_f32m2(dx, dx, vl), dy, dy, vl);
+}
+#endif // ifdef __RVV10__
+
 #undef AT
 
 //////////////////////////////////////////////////////////////////////////
@@ -165,7 +186,7 @@ pcl::SampleConsensusModelCircle2D<PointT>::getDistancesToModel (const Eigen::Vec
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
 pcl::SampleConsensusModelCircle2D<PointT>::selectWithinDistance (
-    const Eigen::VectorXf &model_coefficients, const double threshold, 
+    const Eigen::VectorXf &model_coefficients, const double threshold,
     Indices &inliers)
 {
   // Check if the model is valid given the user constraints
@@ -213,6 +234,8 @@ pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistance (
   return countWithinDistanceAVX (model_coefficients, threshold);
 #elif defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
   return countWithinDistanceSSE (model_coefficients, threshold);
+#elif defined (__RVV10__)
+  return countWithinDistanceRVV (model_coefficients, threshold);
 #else
   return countWithinDistanceStandard (model_coefficients, threshold);
 #endif
@@ -318,6 +341,68 @@ pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistanceAVX (
   return (nr_p);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////
+#if defined(__RVV10__)
+template <typename PointT> std::size_t
+pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistanceRVV (
+    const Eigen::VectorXf &model_coefficients, const double threshold, std::size_t i) const
+{
+  std::size_t nr_p = 0;
+  const std::size_t total_n = indices_->size();
+
+  // Extract circle parameters and pre-calculate squared bounds
+  const float a = model_coefficients[0];
+  const float b = model_coefficients[1];
+  const float r = model_coefficients[2];
+  const float sqr_inner_radius = (r - static_cast<float>(threshold)) * (r - static_cast<float>(threshold));
+  const float sqr_outer_radius = (r + static_cast<float>(threshold)) * (r + static_cast<float>(threshold));
+
+  // Setup base pointers for gathering
+  const uint8_t* const points_base = reinterpret_cast<const uint8_t*>(input_->points.data());
+  const pcl::index_t* const indices_ptr = indices_->data();
+
+  // VLA (Vector Length Agnostic) Loop
+  for (; i < total_n; )
+  {
+    // Set vector length for current iteration
+    const std::size_t vl = __riscv_vsetvl_e32m2(total_n - i);
+
+    // Load logical indices and compute byte offsets
+    const vuint32m2_t v_idx = __riscv_vle32_v_u32m2(reinterpret_cast<const uint32_t*>(indices_ptr + i), vl);
+    const vuint32m2_t v_off = __riscv_vmul_vx_u32m2(v_idx, sizeof(PointT), vl);
+
+    // Gather X and Y coordinates
+    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(points_base + offsetof(PointT, x)), v_off, vl);
+    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(points_base + offsetof(PointT, y)), v_off, vl);
+
+    // Broadcast Coefficients
+    const vfloat32m2_t v_a = __riscv_vfmv_v_f_f32m2(a, vl);
+    const vfloat32m2_t v_b = __riscv_vfmv_v_f_f32m2(b, vl);
+
+    // Compute Squared Distances
+    const vfloat32m2_t v_sqr_dist = sqr_distRVV(v_px, v_py, v_a, v_b, vl);
+
+    // Inlier Mask Generation
+    // Logic: (sqr_dist > sqr_inner) && (sqr_dist < sqr_outer)
+    const vbool16_t mask_inner = __riscv_vmfgt_vf_f32m2_b16(v_sqr_dist, sqr_inner_radius, vl);
+    const vbool16_t mask_outer = __riscv_vmflt_vf_f32m2_b16(v_sqr_dist, sqr_outer_radius, vl);
+    const vbool16_t inliers_mask = __riscv_vmand_mm_b16(mask_inner, mask_outer, vl);
+
+    // Count the set bits in the mask (Population Count).
+    nr_p += __riscv_vcpop_m_b16(inliers_mask, vl);
+
+    // Advance the loop index by the number of processed elements (vl).
+    i += vl;
+  }
+
+  // RVV is Vector Length Agnostic, and there are no remaining points that need to be processed using countWithinDistanceStandard.
+
+  return nr_p;
+}
+#endif // __RVV10__
 
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
@@ -446,7 +531,7 @@ pcl::SampleConsensusModelCircle2D<PointT>::doSamplesVerifyModel (
 }
 
 //////////////////////////////////////////////////////////////////////////
-template <typename PointT> bool 
+template <typename PointT> bool
 pcl::SampleConsensusModelCircle2D<PointT>::isModelValid (const Eigen::VectorXf &model_coefficients) const
 {
   if (!SampleConsensusModel<PointT>::isModelValid (model_coefficients))

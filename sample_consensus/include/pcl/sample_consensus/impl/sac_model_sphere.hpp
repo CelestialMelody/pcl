@@ -152,6 +152,26 @@ template <typename PointT> inline __m128 pcl::SampleConsensusModelSphere<PointT>
 }
 #endif // ifdef __SSE__
 
+#ifdef __RVV10__
+// This function computes the squared distances (i.e. the distances without the square root) of
+template <typename PointT>
+inline vfloat32m2_t
+pcl::SampleConsensusModelSphere<PointT>::sqr_distRVV (
+    const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec, const vfloat32m2_t &z_vec,
+    const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec, const vfloat32m2_t &c_vec,
+    const std::size_t vl) const
+{
+// Calculate differences: dx = x - xc, dy = y - yc, dz = z - zc
+  const vfloat32m2_t dx = __riscv_vfsub_vv_f32m2(x_vec, a_vec, vl);
+  const vfloat32m2_t dy = __riscv_vfsub_vv_f32m2(y_vec, b_vec, vl);
+  const vfloat32m2_t dz = __riscv_vfsub_vv_f32m2(z_vec, c_vec, vl);
+
+  // Compute results: res = dx*dx + dy*dy + dz*dz
+  return __riscv_vfmacc_vv_f32m2(
+      __riscv_vfmacc_vv_f32m2(__riscv_vfmul_vv_f32m2(dx, dx, vl), dy, dy, vl), dz, dz, vl);
+}
+#endif // ifdef __RVV10__
+
 #undef AT
 
 //////////////////////////////////////////////////////////////////////////
@@ -226,6 +246,8 @@ pcl::SampleConsensusModelSphere<PointT>::countWithinDistance (
   return countWithinDistanceAVX (model_coefficients, threshold);
 #elif defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
   return countWithinDistanceSSE (model_coefficients, threshold);
+#elif defined (__RVV10__)
+  return countWithinDistanceRVV (model_coefficients, threshold);
 #else
   return countWithinDistanceStandard (model_coefficients, threshold);
 #endif
@@ -331,6 +353,72 @@ pcl::SampleConsensusModelSphere<PointT>::countWithinDistanceAVX (
   return (nr_p);
 }
 #endif
+
+//////////////////////////////////////////////////////////////////
+#if defined(__RVV10__)
+template <typename PointT> std::size_t
+pcl::SampleConsensusModelSphere<PointT>::countWithinDistanceRVV (
+    const Eigen::VectorXf &model_coefficients, const double threshold, std::size_t i) const
+{
+  std::size_t nr_p = 0;
+  const std::size_t total_n = indices_->size();
+
+  // Extract sphere parameters (center x, y, z and radius r)
+  const float xc = model_coefficients[0];
+  const float yc = model_coefficients[1];
+  const float zc = model_coefficients[2];
+  const float r  = model_coefficients[3];
+
+  // Pre-calculate squared bounds for the "thick shell" inlier region
+  const float sqr_inner_radius = (r <= threshold) ? 0.0f : (r - static_cast<float>(threshold)) * (r - static_cast<float>(threshold));
+  const float sqr_outer_radius = (r + static_cast<float>(threshold)) * (r + static_cast<float>(threshold));
+
+  // Base pointers for AoS data gathering
+  const uint8_t* const points_base = reinterpret_cast<const uint8_t*>(input_->points.data());
+  const pcl::index_t* const indices_ptr = indices_->data();
+
+  // Main Vector Loop (VLA)
+  for (; i < total_n; )
+  {
+    // Dynamically set vector length
+    const std::size_t vl = __riscv_vsetvl_e32m2(total_n - i);
+
+    // Load indices and compute byte offsets: offset = index * sizeof(PointT)
+    const vuint32m2_t v_idx = __riscv_vle32_v_u32m2(reinterpret_cast<const uint32_t*>(indices_ptr + i), vl);
+    const vuint32m2_t v_off = __riscv_vmul_vx_u32m2(v_idx, sizeof(PointT), vl);
+
+    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(points_base + offsetof(PointT, x)), v_off, vl);
+    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(points_base + offsetof(PointT, y)), v_off, vl);
+    const vfloat32m2_t v_pz = __riscv_vluxei32_v_f32m2(
+        reinterpret_cast<const float*>(points_base + offsetof(PointT, z)), v_off, vl);
+    // Broadcast Sphere Center
+    const vfloat32m2_t v_xc = __riscv_vfmv_v_f_f32m2(xc, vl);
+    const vfloat32m2_t v_yc = __riscv_vfmv_v_f_f32m2(yc, vl);
+    const vfloat32m2_t v_zc = __riscv_vfmv_v_f_f32m2(zc, vl);
+
+    // Compute Squared 3D Distances
+    const vfloat32m2_t v_sqr_dist = sqr_distRVV(v_px, v_py, v_pz, v_xc, v_yc, v_zc, vl);
+
+    // Range Check via Masking
+    // inlier if: sqr_inner < d^2 < sqr_outer
+    const vbool16_t mask_inner = __riscv_vmfgt_vf_f32m2_b16(v_sqr_dist, sqr_inner_radius, vl);
+    const vbool16_t mask_outer = __riscv_vmflt_vf_f32m2_b16(v_sqr_dist, sqr_outer_radius, vl);
+    const vbool16_t inliers_mask = __riscv_vmand_mm_b16(mask_inner, mask_outer, vl);
+
+    // Count the set bits in the mask (Population Count).
+    nr_p += __riscv_vcpop_m_b16(inliers_mask, vl);
+
+    // Advance the loop index by the number of processed elements (vl).
+    i += vl;
+  }
+
+  // RVV is Vector Length Agnostic, and there are no remaining points that need to be processed using countWithinDistanceStandard.
+
+  return nr_p;
+}
+#endif // ifdef __RVV10__
 
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
