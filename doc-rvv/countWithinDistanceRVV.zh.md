@@ -1,16 +1,14 @@
-# RVV 优化实现详解：点云平面拟合
+# RVV 实现：RANSAC 模型的 countWithinDistance 优化
 
-本文档详细解析如何将 PCL RANSAC 模块中的平面拟合算法从 AVX 迁移至 RISC-V Vector (RVV 1.0)。我们将深入探讨内存模型、算法原理，并讲解如何实现**带法线**与**不带法线**的两种平面模型优化。
+本文档将深入探讨内存模型、算法原理，详细解析如何将 PCL RANSAC 模块 (包括 plane、 noraml_plane、circle、sphere) 中的内点统计 (countWithinDistance & dist) 从 AVX、SSE 迁移至 RISC-V Vector (RVV 1.0)。
 
 ---
 
 ## 内存模型分析与数学原理
 
-在将 PCL (Point Cloud Library) 的 RANSAC 模块从 x86 (AVX) 迁移至 RISC-V (RVV) 时，难点在于理解数据的存储结构以及其双重间接寻址模式。
-
 ### 1. 内存模型：AoS 布局与对齐
 
-PCL 使用 Eigen 库进行数学运算，因此其核心数据结构强制采用了 **AoS (Array of Structures)** 布局以及 **16字节对齐**。
+PCL 使用 Eigen 库进行数学运算，因此其核心数据结构强制采用了 AoS (Array of Structures) 布局以及 16字节对齐。
 
 #### 1.1 点坐标 (`pcl::PointXYZ`)
 
@@ -43,9 +41,9 @@ struct _PointXYZ {
 
 | **偏移 (Offset)** | **内容**  | **说明**                      |
 | ----------------- | --------- | ----------------------------- |
-| `0x00`            | **X**     | 有效数据                      |
-| `0x04`            | **Y**     | 有效数据                      |
-| `0x08`            | **Z**     | 有效数据                      |
+| `0x00`            | X         | 有效数据                      |
+| `0x04`            | Y         | 有效数据                      |
+| `0x08`            | Z         | 有效数据                      |
 | `0x0C`            | *Padding* | 填充 (通常为 1.0f 或无用数据) |
 
 #### 1.2 法线数据 (`pcl::Normal`)
@@ -96,24 +94,57 @@ struct EIGEN_ALIGN16 _Normal {
 
 PCL RANSAC 算法从不直接遍历整个点云，而是基于一个索引数组 (`indices_`) 来访问点的子集。这导致了 **物理内存访问的非连续性**。
 
-#### 2.1 坐标访问分析 (`PCLAT` 宏) 解析
+#### 2.1 坐标访问分析 (`PCLAT` 与 `AT`  宏) 解析
 
 ```cpp
 // sac_model_plane.h
 #define PCLAT(POS) ((*input_)[(*indices_)[(POS)]])
+
+// sac_model_sphere.h, sac_model_circle.h
+#define AT(POS) ((*input_)[(*indices_)[(POS)]])
+
+// sac_model.h
+  template <typename PointT>
+  class SampleConsensusModel
+  {
+      using PointCloud = pcl::PointCloud<PointT>;
+      using PointCloudConstPtr = typename PointCloud::ConstPtr;
+      using PointCloudPtr = typename PointCloud::Ptr;
+      SampleConsensusModel (const PointCloudConstPtr &cloud, 
+                  const std::vector<int> &indices, 
+                  bool random = false) 
+      : input_ (cloud) , indices_ (new std::vector<int> (indices))
+  }
+
+// point_cloud.h
+template <typename PointT>
+class PointCloud
+{
+    PointCloud (const PointCloud<PointT> &pc,
+                const Indices &indices) :
+      header (pc.header), points (indices.size ()), width (indices.size ()), height (1), is_dense (pc.is_dense), sensor_origin_ (pc.sensor_origin_), sensor_orientation_ (pc.sensor_orientation_)
+    {
+      assert (indices.size () <= pc.size ());
+      for (std::size_t i = 0; i < indices.size (); i++)
+        points[i] = pc[indices[i]];
+    }
+    using ConstPtr = shared_ptr<const PointCloud<PointT> >;
+    inline const PointT& operator[] (std::size_t n) const { return (points[n]); }
+    inline PointT& operator[] (std::size_t n) { return (points[n]); }
+}
 ```
 
 1. **`POS` (循环变量 `i`)**：
    - 逻辑索引，范围 `0` 到 `subset_size`。
    - 代表“当前 RANSAC 迭代中的第 `i` 个点”。
 2. **`(*indices_)[POS]` (获取真实 ID)**：
-   - `indices_` 是 `std::vector<int>`。
-   - 这里获取的是点在原始点云中的 **真实物理 ID (Real ID)**。
+   - `indices_` 类型是 `std::vector<int>`。
+   - 这里获取的是点在原始点云中的真实物理 ID (Real ID)。
    - **内存特征**：虽然 `indices_` 数组本身是连续的，但里面的值通常是乱序的（例如：0, 105, 3, 99...）。
 3. **`(*input_)[Real ID]` (获取数据)**：
-   - `input_` 是 `std::vector<PointXYZ>`。
-   - 利用乱序的 ID 去访问结构体数组。
-   - **结果**：每次内存访问都在整个点云内存空间中大范围跳跃，这对缓存（Cache）非常不友好，且无法使用普通的 SIMD 连续加载指令。
+   - `input_` 类型是 `shared_ptr<const PointCloud<PointT> >`。
+   - `PointCloud` 类重载了 `operator[]`，利用乱序的 ID 去访问结构体数组。
+   - **潜在问题**：每次内存访问都在整个点云内存空间中大范围跳跃，这对缓存（Cache）不友好，且无法使用普通的 SIMD 连续加载指令（因此建议使用 gather 指令）。
 
 #### 2.2 法线访问分析
 
@@ -131,24 +162,73 @@ PCL RANSAC 算法从不直接遍历整个点云，而是基于一个索引数组
 
 ### 3. 算法数学原理
 
-#### 3.1 几何距离计算 (SampleConsensusModelPlane)
+#### 3.1 点到平面距离计算 (SampleConsensusModelPlane)
 
-计算点 $P(x,y,z)$ 到平面 $ax+by+cz+d=0$ 的欧氏距离：
+计算点 $P(x,y,z)$ 到平面 $ax+by+cz+d=0$ 的欧氏距离：$d_{geom} = |ax + by + cz + d|$
 
-$$d_{geom} = |ax + by + cz + d|$$
-
-#### 3.2 带法线平面综合计算 (SampleConsensusModelNormalPlane)
+#### 3.2 带法线点到平面距离综合计算 (SampleConsensusModelNormalPlane)
 
 除了几何距离，还需计算点法线 $\vec{n_p}$ 与平面法线 $\vec{n_m}$ 的夹角差异，并根据点的曲率 $c$ 进行加权：
 
-1. **角度距离**：$d_{ang} = \text{getAcuteAngle}(\vec{n_p}, \vec{n_m})$
-2. **权重**：$w = w_{user} \times (1.0 - c)$
-3. **最终距离**：$D = w \cdot d_{ang} + (1 - w) \cdot d_{geom}$
+1. 角度距离：
+   $$
+   d_{ang} = \text{getAcuteAngle}(\vec{n_p}, \vec{n_m})
+   $$
+   
+2. 权重：
+   $$
+   w = w_{user} \times (1.0 - c)
+   $$
+   
+3. 最终距离：
+   $$
+   D = w \cdot d_{ang} + (1 - w) \cdot d_{geom}
+   $$
+   
 
-#### 3.3 统计与掩码
+#### 3.3 点到圆（2D）距离计算 (SampleConsensusModelCircle2D)
 
-- **AVX**: 使用 `_mm256_cmp_ps` 生成掩码，然后通过 `movemask` 或向量累加来计数。
-- **RVV**: 使用 `vmflt` 生成掩码寄存器，然后直接用 `vcpop.m` 指令统计掩码中 1 的个数，加到标量累加器 `nr_p` 中。
+Circle2D 模型在三维点云中通常只处理 $X$ 和 $Y$ 维度（或投影到特定平面）。圆心 $(x_0, y_0)$，半径 $r$，欧式距离：
+$$
+d = \left| \sqrt{(x-x_0)^2 + (y-y_0)^2} - r \right|
+$$
+
+#### 3.4 点到球心距离计算 (SampleConsensusModelSphere)
+
+Sphere 模型在三维空间中进行判定。球心 $(x_0, y_0, z_0)$，半径 $r$。欧式距离：
+$$
+d = \left| \sqrt{(x-x_0)^2 + (y-y_0)^2 + (z-z_0)^2} - r \right|
+$$
+
+
+#### 3.5 各模型内点判断方式 (Inlier Criteria)
+
+为了优化计算性能（避免在循环中进行 `sqrt` 开方运算），PCL 的 SIMD 实现通常采用平方比较或区间判定。
+
+**Plane / NormalPlane**
+
+- **不带法线(Plane)** 内点条件：
+  $$
+  |ax + by + cz + d| < \text{threshold}
+  $$
+  
+- **带法线 (NormalPlane)** 内点条件：
+  $$
+  |w \cdot d_{ang} + (1 - w) \cdot d_{geom}| < \text{threshold}
+  $$
+  
+
+#### **Circle2D / Sphere (平方区间法)**
+
+为了消除 `sqrt`，将距离公式 
+$$
+d = |\text{dist\_to\_center} - r| < \text{threshold}
+$$
+转换为以下逻辑：
+
+1. 定义有效半径区间：$[r_{min}, r_{max}]$，其中 $r_{min}$ = r - threshold，$r_{max}$  = r + threshold，若 r < threshold，则 $r_{min}$ 取 0。
+2. 计算点到中心（圆心/球心）的**平方距离** $d_{sq}$。
+3. **判断逻辑**：若 $r_{min}^2$ < $d_{sq}$ < $r_{max}^2$，则该点为内点。
 
 ---
 
@@ -242,7 +322,7 @@ const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2((const float*)(points_base + 
 
 ### 3.距离计算
 
-计算公式：$d = |ax + by + cz + d|$
+以计算公式：$d = |ax + by + cz + d|$ 为例
 
 #### AVX 的实现方式
 
@@ -250,14 +330,10 @@ const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2((const float*)(points_base + 
 // 绝对值: 需要构造一个掩码 (0x80000000) 做 ANDNOT 操作 
   return _mm256_andnot_ps (abs_help,             
         _mm256_add_ps (_mm256_add_ps (
-            // a*x
-            _mm256_mul_ps (a_vec, _mm256_set_ps (PCLAT(i  ).x, PCLAT(i+1).x, PCLAT(i+2).x, PCLAT(i+3).x, PCLAT(i+4).x, PCLAT(i+5).x, PCLAT(i+6).x, PCLAT(i+7).x)),
-            // b*y
-            _mm256_mul_ps (b_vec, _mm256_set_ps (PCLAT(i  ).y, PCLAT(i+1).y, PCLAT(i+2).y, PCLAT(i+3).y, PCLAT(i+4).y, PCLAT(i+5).y, PCLAT(i+6).y, PCLAT(i+7).y))),
-            // c*z
-            _mm256_add_ps (_mm256_mul_ps (c_vec, _mm256_set_ps (PCLAT(i  ).z, PCLAT(i+1).z, PCLAT(i+2).z, PCLAT(i+3).z, PCLAT(i+4).z, PCLAT(i+5).z, PCLAT(i+6).z, PCLAT(i+7).z)),
-            // 加上 d
-             d_vec))
+            _mm256_mul_ps (a_vec, _mm256_set_ps (PCLAT(i  ).x, PCLAT(i+1).x, PCLAT(i+2).x, PCLAT(i+3).x, PCLAT(i+4).x, PCLAT(i+5).x, PCLAT(i+6).x, PCLAT(i+7).x)), // a*x
+            _mm256_mul_ps (b_vec, _mm256_set_ps (PCLAT(i  ).y, PCLAT(i+1).y, PCLAT(i+2).y, PCLAT(i+3).y, PCLAT(i+4).y, PCLAT(i+5).y, PCLAT(i+6).y, PCLAT(i+7).y))), // b*y
+            _mm256_add_ps (_mm256_mul_ps (c_vec, _mm256_set_ps (PCLAT(i  ).z, PCLAT(i+1).z, PCLAT(i+2).z, PCLAT(i+3).z, PCLAT(i+4).z, PCLAT(i+5).z, PCLAT(i+6).z, PCLAT(i+7).z)), // c*z
+             d_vec)) // 加上 d
 ```
 
 #### RVV 的实现方式
@@ -274,9 +350,51 @@ const vfloat32m2_t res = __riscv_vfmacc_vv_f32m2(
 dist = __riscv_vfsgnjx_vv_f32m2(dist, dist, vl); 
 ```
 
-###  4.掩码统计 
+### 4.双边界判断
 
-给定浮点距离值的向量，判断每个距离是否小于阈值 `threshold`，若是，则视为“内点（inlier）”，最终统计内点总数 `nr_p`。
+在 Circle2D 和 Sphere 模型中，内点被定义为位于一个“球壳”（或“圆环”）内的点。这需要同时满足两个不等式条件，即**双边界判断**。
+
+#### AVX 的实现方式 (组合掩码)
+
+AVX 通过两次独立的比较操作生成两个浮点掩码向量，然后使用按位与（`_mm256_and_ps`）将它们组合成最终的内点掩码。
+
+```cpp
+// 1. 计算平方距离向量
+const __m256 sqr_dist = ...;
+
+// 2. 生成两个条件掩码
+//    mask1: sqr_dist > sqr_inner_radius
+//    mask2: sqr_dist < sqr_outer_radius
+const __m256 mask1 = _mm256_cmp_ps(sqr_inner_radius, sqr_dist, _CMP_LT_OQ); // inner < dist
+const __m256 mask2 = _mm256_cmp_ps(sqr_dist, sqr_outer_radius, _CMP_LT_OQ); // dist < outer
+
+// 3. 组合掩码: inlier = mask1 AND mask2
+const __m256 inlier_mask = _mm256_and_ps(mask1, mask2);
+```
+
+此方法逻辑清晰，但需要两条比较指令和一条逻辑与指令，并且生成的是浮点类型的全零/全一掩码，后续还需转换为整数才能计数。
+
+#### RVV 的实现方式 (谓词掩码与逻辑操作)
+
+RVV 的设计天然支持高效的条件分支和掩码操作。其比较指令直接返回**压缩布尔掩码**（`vbool16_t`），并提供了专用的布尔逻辑运算指令。
+
+```cpp
+// 1. 计算平方距离向量
+const vfloat32m2_t v_sqr_dist = ...;
+
+// 2. 直接生成布尔掩码
+//    mask_inner: v_sqr_dist > sqr_inner_radius
+//    mask_outer: v_sqr_dist < sqr_outer_radius
+const vbool16_t mask_inner = __riscv_vmfgt_vf_f32m2_b16(v_sqr_dist, sqr_inner_radius, vl);
+const vbool16_t mask_outer = __riscv_vmflt_vf_f32m2_b16(v_sqr_dist, sqr_outer_radius, vl);
+
+// 3. 使用专用布尔“与”指令组合
+const vbool16_t inliers_mask = __riscv_vmand_mm_b16(mask_inner, mask_outer, vl);
+```
+
+###  5.掩码统计 
+
+以 NoramlPlane 模型为例，给定浮点距离值的向量，判断每个距离是否小于阈值 `threshold`，若是，则视为“内点（inlier）”，最终统计内点总数 `nr_p`。
 
 #### AVX 的实现方式 (向量累加 + 水平归约)
 
@@ -306,12 +424,23 @@ RVV 拥有独立的 Mask 寄存器 和 Population Count 指令。
 ```cpp
 // 1. 比较生成掩码 (Result stored in mask register v0)
 // vmflt: Vector Mask Float Less Than
-vbool16_t v_mask = __riscv_vmflt_vf_f32m2_b16(v_dist, t, vl);
+vbool16_t v_mask = __riscv_vmflt_vf_f32m2_b16(v_dist, t, vl); // sac_model_normal_plane.hpp
 
 // 2. 直接统计: vcpop 指令返回 mask 中 1 的个数
 // 这是一个标量结果，直接加到总数 nr_p
 nr_p += __riscv_vcpop_m_b16(v_mask, vl);
 ```
+
+### 小结：
+
+| **操作**        | **SSE**                                 | **AVX2**                                      | **RVV**                           |
+| --------------- | --------------------------------------- | --------------------------------------------- | --------------------------------- |
+| 广播中心坐标    | `_mm_set1_ps`                           | `_mm256_set1_ps`                              | `__riscv_vfmv_v_f_f32m2`          |
+| 计算平方距离    | 自定义 `sqr_dist4`                      | 自定义 `sqr_dist8`                            | 自定义 `sqr_distRVV`              |
+| 双边界判断      | `_mm_cmplt_ps` ×2 + `_mm_and_ps`        | `_mm256_cmp_ps` ×2 + `_mm256_and_ps`          | `vmflt` + `vmfgt` + `vmand`       |
+| 转换为 0/1 计数 | `_mm_castps_si128 + _mm_and_si128(1)`   | `_mm256_castps_si256 + _mm256_and_si256(1)`   | **无需转换**                      |
+| 累计 inlier 数  | `_mm_add_epi32` + 4×`_mm_extract_epi32` | `_mm256_add_epi32` + 8×`_mm256_extract_epi32` | `__riscv_vcpop_m_b16`（单指令）   |
+| 处理尾部元素    | 调用 `countWithinDistanceStandard`      | 同左                                          | **自动处理（VLA）**，无需额外代码 |
 
 ------
 
@@ -334,25 +463,27 @@ nr_p += __riscv_vcpop_m_b16(v_mask, vl);
 | `_mm256_movemask_ps(__m256 a)`                   | **提取符号位**：将每个 float 元素的符号位（bit 31）组合成 8 位整数 | `a`: float 向量                                           | `int`（低 8 位有效） | bit i 对应 `a[i]` 的符号；负数/−0 → 1          |
 | `_mm256_castps_si256(__m256 a)`                  | **类型转换**：将 float 向量 reinterpret 为整型向量（不改变位模式） | `a`: float 向量                                           | `__m256i`            | 用于后续整数运算（如 `_mm256_and_si256`）      |
 | `_mm256_set1_epi32(int a)`                       | **广播整数**：将 32 位整数复制 8 次                          | `a`: 要广播的整数                                         | `__m256i`            | —                                              |
-| `_mm256_and_si256(__m256i a, __m256i b)`         | **整数按位与**                                               | `a`, `b`: 整型向量                                        | `__m256i`            | —                                              |
-| `_mm256_add_epi32(__m256i a, __m256i b)`         | **整数加法**：32 位整数逐元素相加                            | `a`, `b`: 整型向量                                        | `__m256i`            | —                                              |
+| `_mm256_and_si256(__m256i a, __m256i b)`         | **整数按位与**                                               | `a`, `b`: 整型向量                                        | `__m256i`            | 用于生成 0/1 计数向量                          |
+| `_mm256_add_epi32(__m256i a, __m256i b)`         | **整数加法**：32 位整数逐元素相加                            | `a`, `b`: 整型向量                                        | `__m256i`            | 累加 inlier 计数                               |
 | `_mm256_extract_epi32(__m256i a, const int imm)` | **提取整数元素**：从向量中提取第 `imm` 个 32 位整数          | `a`: 整型向量；`imm`: **编译时常量**，范围 0–7            | `int`                | 当向量来自 `load` 时，`imm=i` 对应 `data[i]`   |
 
 ### RVV Intrinsic (RISC-V Vector Extension)
 
-RVV 函数命名规则：`__riscv_<op>_<type><lmul>[_suffix]`。  
+RVV 函数命名规则：`__riscv_<op>_<type><lmul>[_suffix]`。
 
-- `f32m2`：float32，LMUL=2（使用 2 个向量寄存器）  
-- `b16`：布尔掩码，每个 active 元素占 1 bit，共 16 位（对应 VLEN=128）  
+- `f32m2`：float32，LMUL=2（使用 2 个向量寄存器）
+- `b16`：布尔掩码，每个 active 元素占 1 bit，共 16 位
 - 所有函数最后参数为 `vl`（Vector Length），表示当前处理的有效元素数。
 
-| **函数名**                                                   | **功能说明**                                                 | **参数含义**                                                 | **返回值**         | **备注**                                   |
-| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------ | ------------------------------------------ |
-| `__riscv_vsetvl_e32m2(size_t avl)`                           | **自动定长 (VLA)**：申请处理 `avl` 个元素。硬件返回实际能处理的个数 `vl`。若 `avl > 硬件最大值`，返回最大值；若 `avl` 较小，返回 `avl`。 | `avl`: Application Vector Length（如剩余数组元素个数）       | `size_t vl`        | 必须在向量操作前调用                       |
-| `__riscv_vle32_v_f32m2(const float* base, size_t vl)`        | **连续加载**：从 `base` 加载 `vl` 个 float                   | `base`: 内存起始地址；`vl`: 向量长度                         | `vfloat32m2_t`     | 类似 `_mm256_load_ps`                      |
-| `__riscv_vluxei32_v_f32m2(const float* base, vuint32m2_t index, size_t vl)` | **索引加载（Gather）**：`result[i] = base[index[i]]`         | `base`: 基地址；`index`: 32 位无符号索引向量；`vl`: 向量长度 | `vfloat32m2_t`     | 类似 x86 `vgatherdps`                      |
-| `__riscv_vfmv_v_f_f32m2(float scalar, size_t vl)`            | **广播**：将标量 `scalar` 复制到 `vl` 个元素                 | `scalar`: 标量值；`vl`: 向量长度                             | `vfloat32m2_t`     | 类似 `_mm256_set1_ps`                      |
-| `__riscv_vfmacc_vv_f32m2(vd, vs1, vs2, vl)`                  | **融合乘加**：`vd[i] = vd[i] + vs1[i] * vs2[i]`              | `vd`: 累加目标；`vs1`, `vs2`: 乘数向量；`vl`: 向量长度       | `vfloat32m2_t`     | 高效实现 `a + b*c`                         |
-| `__riscv_vfsgnjx_vv_f32m2(vs1, vs2, vl)`                     | **符号异或**：`result[i] = vs2[i] XOR (sign of vs1[i])`      | `vs1`: 提供符号位；`vs2`: 数据；`vl`: 向量长度               | `vfloat32m2_t`     | 用于取绝对值：`vfsgnjx(x, x)` → 清除符号位 |
-| `__riscv_vmflt_vf_f32m2_b16(v, float scalar, vl)`            | **向量-标量比较（小于）**：`mask[i] = (v[i] < scalar)`       | `v`: float 向量；`scalar`: 标量阈值；`vl`: 向量长度          | `vbool16_t`        | 返回压缩布尔掩码                           |
-| `__riscv_vcpop_m_b16(vbool16_t mask, size_t vl)`             | **掩码 popcount**：统计 `mask` 中为 true 的元素个数          | `mask`: 布尔掩码；`vl`: 向量长度                             | `size_t`（计数值） | 一条指令完成计数                           |
+| **函数名**                                                   | **功能说明**                                                 | **参数含义**                                                 | **返回值**         | **备注**                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------ | ------------------------------------ |
+| `__riscv_vsetvl_e32m2(size_t avl)`                           | **自动定长 (VLA)**：申请处理 `avl` 个元素。硬件返回实际能处理的个数 `vl`。若 `avl > 硬件最大值`，返回最大值；若 `avl` 较小，返回 `avl`。 | `avl`: Application Vector Length（如剩余数组元素个数）       | `size_t vl`        | 必须在向量操作前调用                 |
+| `__riscv_vle32_v_u32m2(const uint32_t* base, size_t vl)`     | **连续加载**：加载 `vl` 个 32 位无符号整数（用于索引）       | `base`: 索引数组起始地址；`vl`: 向量长度                     | `vuint32m2_t`      | PCL 中用于加载 `indices_`            |
+| `__riscv_vmul_vx_u32m2(vuint32m2_t v, uint32_t x, size_t vl)` | **向量×标量乘法**：计算字节偏移 `offset[i] = index[i] * sizeof(PointT)` | `v`: 索引向量；`x`: `sizeof(PointT)`；`vl`: 向量长度         | `vuint32m2_t`      | 为 gather 提供字节偏移               |
+| `__riscv_vluxei32_v_f32m2(const float* base, vuint32m2_t index, size_t vl)` | **索引加载（Gather）**：`result[i] = base[index[i]]`         | `base`: 基地址（如 `&points[0].x`）；`index`: 字节偏移向量；`vl`: 向量长度 | `vfloat32m2_t`     | 支持 AoS 布局，无需 struct-of-arrays |
+| `__riscv_vfmv_v_f_f32m2(float scalar, size_t vl)`            | **广播**：将标量 `scalar` 复制到 `vl` 个元素                 | `scalar`: 标量值；`vl`: 向量长度                             | `vfloat32m2_t`     | 类似 `_mm256_set1_ps`                |
+| `__riscv_vmflt_vf_f32m2_b16(v, float scalar, vl)`            | **向量-标量比较（小于）**：`mask[i] = (v[i] < scalar)`       | `v`: float 向量；`scalar`: 标量阈值；`vl`: 向量长度          | `vbool16_t`        | 返回压缩布尔掩码                     |
+| `__riscv_vmfgt_vf_f32m2_b16(v, float scalar, vl)`            | **向量-标量比较（大于）**：`mask[i] = (v[i] > scalar)`       | `v`: float 向量；`scalar`: 标量阈值；`vl`: 向量长度          | `vbool16_t`        | 用于 `sqr_dist > sqr_inner_radius`   |
+| `__riscv_vmand_mm_b16(vbool16_t a, vbool16_t b, size_t vl)`  | **布尔掩码“与”**：`result[i] = a[i] && b[i]`                 | `a`, `b`: 两个布尔掩码；`vl`: 向量长度                       | `vbool16_t`        | 组合内外球壳条件                     |
+| `__riscv_vcpop_m_b16(vbool16_t mask, size_t vl)`             | **掩码 popcount**：统计 `mask` 中为 true 的元素个数          | `mask`: 布尔掩码；`vl`: 向量长度                             | `size_t`（计数值） | 一条指令完成计数                     |
+
