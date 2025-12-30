@@ -126,6 +126,9 @@ public:
 #if defined(__AVX__) && defined(__AVX2__)
   using SampleConsensusModelSphere<PointT>::countWithinDistanceAVX;
 #endif
+#if defined(__RVV10__)
+  using SampleConsensusModelSphere<PointT>::countWithinDistanceRVV;
+#endif
 };
 
 TEST(SampleConsensusModelSphere,
@@ -182,6 +185,11 @@ TEST(SampleConsensusModelSphere,
     const auto res_avx =
         model.countWithinDistanceAVX(model_coefficients, threshold); // AVX
     ASSERT_EQ(res_standard, res_avx);
+#endif
+#if defined(__RVV10__)
+    const auto res_rvv =
+        model.countWithinDistanceRVV(model_coefficients, threshold); // RVV
+    ASSERT_EQ(res_standard, res_rvv);
 #endif
   }
 }
@@ -673,6 +681,9 @@ public:
 #if defined(__AVX__) && defined(__AVX2__)
   using SampleConsensusModelCircle2D<PointT>::countWithinDistanceAVX;
 #endif
+#if defined(__RVV10__)
+  using SampleConsensusModelCircle2D<PointT>::countWithinDistanceRVV;
+#endif
 };
 
 TEST(SampleConsensusModelCircle2D,
@@ -726,6 +737,11 @@ TEST(SampleConsensusModelCircle2D,
     const auto res_avx =
         model.countWithinDistanceAVX(model_coefficients, threshold); // AVX
     ASSERT_EQ(res_standard, res_avx);
+#endif
+#if defined(__RVV10__)
+    const auto res_rvv =
+        model.countWithinDistanceRVV(model_coefficients, threshold); // RVV
+    ASSERT_EQ(res_standard, res_rvv);
 #endif
   }
 }
