@@ -343,10 +343,10 @@ pcl::SampleConsensusModelPlane<PointT>::countWithinDistanceRVV (
     // Ask the hardware to process as many elements as possible (vl)
     // based on the remaining number of points (total_n - i).
     // e32m2: Element width 32-bit, Register Grouping (LMUL) = 2.
-    const size_t vl = __riscv_vsetvl_e32m2(total_n - i);
+    const std::size_t vl = __riscv_vsetvl_e32m2(total_n - i);
 
     // Load 'vl' indices from the index vector into a vector register.
-    const vuint32m2_t v_idx = __riscv_vle32_v_u32m2((const uint32_t*)(indices_ptr + i), vl);
+    const vuint32m2_t v_idx = __riscv_vle32_v_u32m2(reinterpret_cast<const uint32_t*>(indices_ptr + i), vl);
 
     // Replicate scalar coefficients into vector registers for parallel computation.
     const vfloat32m2_t v_a = __riscv_vfmv_v_f_f32m2(a, vl);
@@ -358,9 +358,12 @@ pcl::SampleConsensusModelPlane<PointT>::countWithinDistanceRVV (
     const vuint32m2_t v_off_pt = __riscv_vmul_vx_u32m2(v_idx, sizeof(PointT), vl);
 
     // Use Unordered Indexed Load (vluxei32) to load X, Y, Z from non-contiguous memory.
-    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, x)), v_off_pt, vl);
-    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, y)), v_off_pt, vl);
-    const vfloat32m2_t v_pz = __riscv_vluxei32_v_f32m2((const float*)(points_base + offsetof(PointT, z)), v_off_pt, vl);
+    const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2(
+      reinterpret_cast<const float*>(points_base + offsetof(PointT, x)), v_off_pt, vl);
+    const vfloat32m2_t v_py = __riscv_vluxei32_v_f32m2(
+      reinterpret_cast<const float*>(points_base + offsetof(PointT, y)), v_off_pt, vl);
+    const vfloat32m2_t v_pz = __riscv_vluxei32_v_f32m2(
+      reinterpret_cast<const float*>(points_base + offsetof(PointT, z)), v_off_pt, vl);
 
     // Calculate |ax + by + cz + d|.
     // We call the pure math kernel 'distRVV' defined in the base class.
