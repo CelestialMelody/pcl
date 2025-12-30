@@ -28,6 +28,16 @@ RVV 引入了 **LMUL (Vector Register Grouping Multiplier)** 的概念。
 - **PCL 的现状**：PCL 主要使用 `float` (`pcl::PointXYZ`)。因此使用 `vfloat32`。
 - **Double (`vfloat64`)**：只有当定义了 `pcl::PointXYZ` 使用 `double` 精度时才需要。目前的 PCL 默认配置较少使用双精度点云。如果有需求，只需将 API 中的 `float` 改为 `double`，并将 RVV 类型改为 `vfloat64m2_t`，指令改为 `vfadd` 等双精度版本即可。
 
+### 为什么掩码类型使用 `vbool16_t`？
+
+在 RVV 1.0 标准中，在使用 `vfloat32m2_t` 时，掩码类型必须使用 `vbool16_t`。这不取决于硬件具体的 VLEN 数值，但取决于 SEW/LMUL 的比值。RVV 的掩码位宽（Mask Bit Width）遵循公式：
+
+$$\text{MLEN} = \frac{\text{SEW}}{\text{LMUL}}$$
+
+> 在文档中搜索函数 `vmflt_vf_f32m2_b` 也只能找到 `__riscv_vmflt_vf_f32m2_b16` 这里的 b16 也说明掩码类型只能为 vbool16_t。
+
+MLEN = 16 的含义是： 掩码向量中的 1 位（1 bit）对应数据向量中的一个元素。`vbool16_t` 的定义就是“每个 bit 对应一个 MLEN=16 逻辑元素的掩码”。
+
 ---
 
 ## 向量长度 (Vector Length) 的差异：定长 vs 变长
