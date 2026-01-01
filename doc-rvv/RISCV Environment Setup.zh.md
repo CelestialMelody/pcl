@@ -21,7 +21,7 @@
 
 > **说明**：该部分内容参考 [riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain) 提供的构建方式（以下内容可能有一些多余的包）
 
-**Ubuntu / Debian 系**
+Ubuntu / Debian 系
 
 ```bash
 sudo apt update
@@ -31,10 +31,9 @@ sudo apt install -y \
     texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev libslirp-dev libncurses-dev \
     libglib2.0-dev libpixman-1-dev device-tree-compiler libboost-regex-dev libboost-system-dev \
     cmake vim tmux usbutils udev zsh gdb-multiarch openocd
-     
 ```
 
-**Arch Linux 系**
+Arch Linux 系
 
 ```bash
 sudo pacman -Syu
@@ -151,7 +150,7 @@ qemu-riscv64 --version
 
 ------
 
-## 方案二：Docker 环境构建 
+## 方案二：Docker 环境构建
 
 本方案基于提供的 `Dockerfile` 和 `Makefile`，能够构建一个包含 GCC 15 (开发分支)、QEMU 10.1.0 和 Spike 的开发环境。该环境完全隔离，且工具链支持 RVV 1.0 特性。
 
