@@ -44,14 +44,22 @@
 
 ## 3. RVV移植验证
 
-从代码实现来看，RVV（RISC-V Vector）移植已完成，具体表现为：
+检查是否有编译 RVV 代码
 
-1. 代码中存在RVV专用实现的调用：`model.countWithinDistanceRVV(model_coefficients, threshold)`
-2. 有完整的正确性验证逻辑：通过 `EXPECT_LE`宏对比RVV实现与标准实现的结果差异，允许最大误差为2
-3. 包含RVV性能统计代码：记录总运行时间并计算相对于标准实现的加速比（`Speedup (Std/RVV)`）
+```cpp
+riscv64-unknown-linux-gnu-objdump -dC rvv_sac_plane_test | grep "vsetvl" | head
+
+riscv64-unknown-linux-gnu-objdump -dC rvv_sac_plane_test | grep "countWithinDistanceRVV"
+```
 
 若测试通过（即RVV实现与标准实现的结果差异在允许范围内），则可认为RVV移植功能上是成功的。
 
+从代码实现来看，RVV（RISC-V Vector）移植已完成，具体表现为：
+
+1. 代码中存在RVV专用实现的调用：`model.countWithinDistanceRVV(model_coefficients, threshold)`
+2. 有完整的正确性验证逻辑：通过 `ASSERT_EQ`宏对比RVV实现与标准实现的结果差异
+3. 包含RVV性能统计代码：记录总运行时间并计算相对于标准实现的加速比（`Speedup (Std/RVV)`）
+
 ## 4. QEMU 中 RVV 性能不如标量代码的现象
 
-根据官方Issue [#2137 RISC-V Vector Slowdowns](https://gitlab.com/qemu-project/qemu/-/issues/2137)及社区讨论，在QEMU模拟 RISC-V 架构 时，开启 RVV 向量扩展自动向量化编译的二进制程序，运行速度远慢于非向量化版本；且这类向量优化的程序在真实 RISC-V 硬件上是提速的，仅在 QEMU 模拟环境中出现严重降速。故为正常现象。
+根据官方Issue [#2137 RISC-V Vector Slowdowns](https://gitlab.com/qemu-project/qemu/-/issues/2137) 以及 reddit 社区讨论，在QEMU模拟 RISC-V 架构 时，开启 RVV 向量扩展自动向量化编译的二进制程序，运行速度远慢于非向量化版本；且这类向量优化的程序在真实 RISC-V 硬件上是提速的，仅在 QEMU 模拟环境中出现严重降速。故为正常现象。（还需要在物理硬件上验证）

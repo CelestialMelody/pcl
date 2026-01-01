@@ -4,7 +4,7 @@
 
 > 说明：1. 对于不使用 Docker 环境也能参考；2. 你可以在交叉编译时，更改为你想要安装的路径
 
-### 1. 环境准备与变量配置（后续环境配置请看这里）
+## 1. 环境准备与变量配置（后续环境配置请看这里）
 
 为了简化后续命令，我们先定义统一的环境变量。请将 `{YOUR_RISCV_ENV_PATH}` 替换为您希望安装库的实际路径（例如 `/workspace/riscv`）。
 
@@ -34,7 +34,7 @@ echo "Install Dir: ${INSTALL_DIR}"
 echo "Compiler: ${CC}"
 ```
 
-### 2. 编译 zlib
+## 2. 编译 zlib
 
 测试时依赖 [zlib](https://www.zlib.net/) （libz.so）
 
@@ -51,7 +51,7 @@ cd zlib-1.3.1
 make -j$(nproc) && make install
 ```
 
-### 3.编译 LZ4 (压缩库)
+## 3.编译 LZ4 (压缩库)
 
 [LZ4](https://github.com/lz4/lz4/releases) 是 PCL 和 FLANN 的依赖库。
 
@@ -61,7 +61,7 @@ wget https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz
 tar -zxvf lz4-1.10.0.tar.gz
 cd lz4-1.10.0
 
-# 编译安装 
+# 编译安装
 make CC=$CC AR=$AR RANLIB=$RANLIB \
      CFLAGS="$ARCH_FLAGS" \
      PREFIX=${INSTALL_DIR}/lz4 \
@@ -71,7 +71,7 @@ make CC=$CC AR=$AR RANLIB=$RANLIB \
 ls ${INSTALL_DIR}/lz4/lib
 ```
 
-### 4.编译 HDF5
+## 4.编译 HDF5
 
 FLANN 需要 [HDF5](https://github.com/HDFGroup/hdf5/releases) 支持。
 
@@ -82,7 +82,7 @@ cd hdf5-1.14.6
 
 mkdir -p build && cd build
 
-# 配置 (启用动态库) 
+# 配置 (启用动态库)
 ../configure \
     --host=riscv64-unknown-linux-gnu \
     --prefix=${INSTALL_DIR}/hdf5 \
@@ -96,7 +96,7 @@ mkdir -p build && cd build
 make -j$(nproc) && make install
 ```
 
-#### 5.编译 FLANN (近似最近邻搜索)
+## 5.编译 FLANN (近似最近邻搜索)
 
 [FLANN](https://github.com/flann-lib/flann) 需要链接前面编译好的 LZ4 和 HDF5。
 
@@ -109,7 +109,7 @@ mkdir build && cd build
 # 设置 PKG_CONFIG 路径以防万一
 export PKG_CONFIG_PATH=${INSTALL_DIR}/lz4/lib/pkgconfig:$PKG_CONFIG_PATH
 
-# CMake 配置 
+# CMake 配置
 cmake .. \
     -DCMAKE_SYSTEM_NAME=Linux \
     -DCMAKE_SYSTEM_PROCESSOR=riscv64 \
@@ -133,7 +133,7 @@ cmake .. \
 make -j$(nproc) && make install
 ```
 
-### 6. 编译 Boost (1.88.0)
+## 6. 编译 Boost (1.88.0)
 
 [Boost](https://www.boost.org/releases/1.88.0/) 采用1.88.0版本，后续版本似乎存在 [libboost_system 丢失问题](https://github.com/boostorg/boost/issues/1071)。使用 `b2` 构建系统并指定配置文件。
 
@@ -146,7 +146,7 @@ cd boost_1_88_0
 # 引导构建系统
 ./bootstrap.sh
 
-# 创建交叉编译配置文件 
+# 创建交叉编译配置文件
 cp tools/build/example/user-config.jam .
 # 找到 "using gcc" 这一行进行修改，若不存在则添加（这里 $CXX 可能需要替换为具体路径）
 echo "using gcc : riscv64 : $CXX ;" > user-config.jam
@@ -166,7 +166,7 @@ echo "using gcc : riscv64 : $CXX ;" > user-config.jam
     install
 ```
 
-### 7.编译 Eigen (3.3.9)
+## 7.编译 Eigen (3.3.9)
 
 目前，Eigen 5.x 版本不兼容，需使用 3.3.9。(PS：eigen 源码仓库最新分支上是支持 RISCV RVV 的)
 
@@ -187,7 +187,7 @@ cmake .. \
 make install -j$(nproc)
 ```
 
-### 8.编译 PCL (最终目标)
+## 8.编译 PCL (最终目标)
 
 链接所有依赖项。
 
@@ -244,7 +244,7 @@ cmake .. \
 make -j$(nproc) && make install
 ```
 
-### 9.其他相关依赖
+## 9.其他相关依赖
 
 提供的测试程序依赖 [gtest](https://github.com/google/googletest.git)，但 PCL 库编译本身不依赖
 
@@ -270,6 +270,3 @@ cmake .. \
 # 编译并安装
 make -j$(nproc) && make install
 ```
-
-
-
