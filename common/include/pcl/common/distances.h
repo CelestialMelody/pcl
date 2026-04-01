@@ -42,6 +42,7 @@
 #include <pcl/types.h>
 #include <pcl/point_types.h> // for PointXY
 #include <Eigen/Core> // for VectorXf
+#include <Eigen/Geometry> // for MatrixBase::cross3() definition (used in sqrPointToLineDistance)
 
 /**
   * \file pcl/common/distances.h
