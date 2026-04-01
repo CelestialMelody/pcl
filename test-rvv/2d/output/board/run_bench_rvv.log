@@ -1,0 +1,34 @@
+[BOARD] Benchmark RVV -> /root/pcl-test/2d/output/run_bench_rvv.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/bench_2d_app_rvv 2>&1 | tee /root/pcl-test/2d/output/run_bench_rvv.log
+========================================================
+ PCL 2D Module Benchmark
+ Image Size: 640 x 480
+ Iterations: 20
+========================================================
+Kernel gaussianKernel (3x3, sigma=1.0)  : 0.887 us / iter
+Kernel gaussianKernel (5x5, sigma=1.0)  : 1.138 us / iter
+Kernel gaussianKernel (11x11, sigma=2.0): 2.887 us / iter
+Kernel loGKernel (3x3, sigma=1.0)       : 0.785 us / iter
+Kernel loGKernel (5x5, sigma=1.0)       : 1.091 us / iter
+Kernel loGKernel (11x11, sigma=2.0)     : 2.881 us / iter
+Convolution (5x5 Gaussian)              : 24.707 ms / iter
+Convolution (11x11 Gaussian)            : 166.044 ms / iter
+Conv+Kernel Gaussian (5x5, sigma=1.0)   : 24.454 ms / iter
+Conv+Kernel Gaussian (11x11, sigma=2.0) : 165.249 ms / iter
+Conv+Kernel LoG (11x11, sigma=2.0)      : 165.015 ms / iter
+Edge Sobel (Magnitude)                  : 77.471 ms / iter
+Edge Canny (Full Pipeline)              : 125.042 ms / iter
+Edge discretizeAngles                   : 7.320 ms / iter
+Morphology Erosion (Gray 3x3)           : 13.996 ms / iter
+Morphology Dilation (Gray 3x3)          : 14.144 ms / iter
+Morphology Opening (Gray 3x3)           : 34.173 ms / iter
+Morphology Closing (Gray 3x3)           : 34.833 ms / iter
+Morphology Erosion (Binary 3x3)         : 15.349 ms / iter
+Morphology Dilation (Binary 3x3)        : 15.532 ms / iter
+Morphology Opening (Binary 3x3)         : 31.849 ms / iter
+Morphology Closing (Binary 3x3)         : 32.460 ms / iter
+Set Operation: Union (A | B)            : 9.797 ms / iter
+Set Operation: Intersection (A & B)     : 9.570 ms / iter
+Set Operation: Subtraction (A - B)      : 9.641 ms / iter
+========================================================

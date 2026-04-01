@@ -1,0 +1,164 @@
+[BOARD] Benchmark Std -> /root/pcl-test/2d/output/run_bench_std.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/bench_2d_app_std 2>&1 | tee /root/pcl-test/2d/output/run_bench_std.log
+========================================================
+ PCL 2D Module Benchmark
+ Image Size: 640 x 480
+ Iterations: 20
+========================================================
+Kernel gaussianKernel (3x3, sigma=1.0)  : 1.253 us / iter
+Kernel gaussianKernel (5x5, sigma=1.0)  : 2.609 us / iter
+Kernel gaussianKernel (11x11, sigma=2.0): 9.464 us / iter
+Kernel loGKernel (3x3, sigma=1.0)       : 1.245 us / iter
+Kernel loGKernel (5x5, sigma=1.0)       : 3.407 us / iter
+Kernel loGKernel (11x11, sigma=2.0)     : 9.955 us / iter
+Convolution (5x5 Gaussian)              : 80.508 ms / iter
+Convolution (11x11 Gaussian)            : 1011.153 ms / iter
+Conv+Kernel Gaussian (5x5, sigma=1.0)   : 80.188 ms / iter
+Conv+Kernel Gaussian (11x11, sigma=2.0) : 1011.275 ms / iter
+Conv+Kernel LoG (11x11, sigma=2.0)      : 1010.558 ms / iter
+Edge Sobel (Magnitude)                  : 149.965 ms / iter
+Edge Canny (Full Pipeline)              : 234.432 ms / iter
+Edge discretizeAngles                   : 12.395 ms / iter
+Morphology Erosion (Gray 3x3)           : 61.884 ms / iter
+Morphology Dilation (Gray 3x3)          : 62.017 ms / iter
+Morphology Opening (Gray 3x3)           : 128.429 ms / iter
+Morphology Closing (Gray 3x3)           : 127.806 ms / iter
+Morphology Erosion (Binary 3x3)         : 20.089 ms / iter
+Morphology Dilation (Binary 3x3)        : 28.568 ms / iter
+Morphology Opening (Binary 3x3)         : 74.823 ms / iter
+Morphology Closing (Binary 3x3)         : 77.837 ms / iter
+Set Operation: Union (A | B)            : 9.466 ms / iter
+Set Operation: Intersection (A & B)     : 9.440 ms / iter
+Set Operation: Subtraction (A - B)      : 9.495 ms / iter
+========================================================
+[BOARD] Benchmark RVV -> /root/pcl-test/2d/output/run_bench_rvv.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/bench_2d_app_rvv 2>&1 | tee /root/pcl-test/2d/output/run_bench_rvv.log
+========================================================
+ PCL 2D Module Benchmark
+ Image Size: 640 x 480
+ Iterations: 20
+========================================================
+Kernel gaussianKernel (3x3, sigma=1.0)  : 0.887 us / iter
+Kernel gaussianKernel (5x5, sigma=1.0)  : 1.138 us / iter
+Kernel gaussianKernel (11x11, sigma=2.0): 2.887 us / iter
+Kernel loGKernel (3x3, sigma=1.0)       : 0.785 us / iter
+Kernel loGKernel (5x5, sigma=1.0)       : 1.091 us / iter
+Kernel loGKernel (11x11, sigma=2.0)     : 2.881 us / iter
+Convolution (5x5 Gaussian)              : 24.707 ms / iter
+Convolution (11x11 Gaussian)            : 166.044 ms / iter
+Conv+Kernel Gaussian (5x5, sigma=1.0)   : 24.454 ms / iter
+Conv+Kernel Gaussian (11x11, sigma=2.0) : 165.249 ms / iter
+Conv+Kernel LoG (11x11, sigma=2.0)      : 165.015 ms / iter
+Edge Sobel (Magnitude)                  : 77.471 ms / iter
+Edge Canny (Full Pipeline)              : 125.042 ms / iter
+Edge discretizeAngles                   : 7.320 ms / iter
+Morphology Erosion (Gray 3x3)           : 13.996 ms / iter
+Morphology Dilation (Gray 3x3)          : 14.144 ms / iter
+Morphology Opening (Gray 3x3)           : 34.173 ms / iter
+Morphology Closing (Gray 3x3)           : 34.833 ms / iter
+Morphology Erosion (Binary 3x3)         : 15.349 ms / iter
+Morphology Dilation (Binary 3x3)        : 15.532 ms / iter
+Morphology Opening (Binary 3x3)         : 31.849 ms / iter
+Morphology Closing (Binary 3x3)         : 32.460 ms / iter
+Set Operation: Union (A | B)            : 9.797 ms / iter
+Set Operation: Intersection (A & B)     : 9.570 ms / iter
+Set Operation: Subtraction (A - B)      : 9.641 ms / iter
+========================================================
+python3 '/root/pcl-test/2d/script/analyze_bench_compare.py' \
+        --std-log /root/pcl-test/2d/output/run_bench_std.log \
+        --rvv-log /root/pcl-test/2d/output/run_bench_rvv.log \
+        --device "Milkv-Jupiter" \
+        --vlen-desc "see SoC / ELF (board)" \
+
+======================================================================================================
+ PCL 2D Module Benchmark (Std vs RVV)
+======================================================================================================
+[Benchmark Context]
+  Device     : Milkv-Jupiter
+  VLEN       : see SoC / ELF (board)
+  Dataset    : synthetic 2D image 640 x 480 (307200 points / pixels)
+  Iterations : 20 （Set Operation 类项：loop=base_iters×5）
+  Std log    : /root/pcl-test/2d/output/run_bench_std.log
+  RVV log    : /root/pcl-test/2d/output/run_bench_rvv.log
+
+------------------------------------------------------------------------------------------------------
+Benchmark Item                            | Impl   |       Avg Time |     Total Time |        Speedup
+------------------------------------------|--------|----------------|----------------|----------------
+Kernel gaussianKernel (3x3, sigma=1.0)    | Std    |      0.0013 ms |      0.0251 ms |    [   1.00x ]
+                                          | RVV    |      0.0009 ms |      0.0177 ms |    [   1.41x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Kernel gaussianKernel (5x5, sigma=1.0)    | Std    |      0.0026 ms |      0.0522 ms |    [   1.00x ]
+                                          | RVV    |      0.0011 ms |      0.0228 ms |    [   2.29x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Kernel gaussianKernel (11x11, sigma=2.0)  | Std    |      0.0095 ms |      0.1893 ms |    [   1.00x ]
+                                          | RVV    |      0.0029 ms |      0.0577 ms |    [   3.28x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Kernel loGKernel (3x3, sigma=1.0)         | Std    |      0.0012 ms |      0.0249 ms |    [   1.00x ]
+                                          | RVV    |      0.0008 ms |      0.0157 ms |    [   1.59x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Kernel loGKernel (5x5, sigma=1.0)         | Std    |      0.0034 ms |      0.0681 ms |    [   1.00x ]
+                                          | RVV    |      0.0011 ms |      0.0218 ms |    [   3.12x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Kernel loGKernel (11x11, sigma=2.0)       | Std    |      0.0100 ms |      0.1991 ms |    [   1.00x ]
+                                          | RVV    |      0.0029 ms |      0.0576 ms |    [   3.46x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Convolution (5x5 Gaussian)                | Std    |     80.5080 ms |   1610.1600 ms |    [   1.00x ]
+                                          | RVV    |     24.7070 ms |    494.1400 ms |    [   3.26x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Convolution (11x11 Gaussian)              | Std    |   1011.1530 ms |  20223.0600 ms |    [   1.00x ]
+                                          | RVV    |    166.0440 ms |   3320.8800 ms |    [   6.09x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Conv+Kernel Gaussian (5x5, sigma=1.0)     | Std    |     80.1880 ms |   1603.7600 ms |    [   1.00x ]
+                                          | RVV    |     24.4540 ms |    489.0800 ms |    [   3.28x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Conv+Kernel Gaussian (11x11, sigma=2.0)   | Std    |   1011.2750 ms |  20225.5000 ms |    [   1.00x ]
+                                          | RVV    |    165.2490 ms |   3304.9800 ms |    [   6.12x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Conv+Kernel LoG (11x11, sigma=2.0)        | Std    |   1010.5580 ms |  20211.1600 ms |    [   1.00x ]
+                                          | RVV    |    165.0150 ms |   3300.3000 ms |    [   6.12x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Edge Sobel (Magnitude)                    | Std    |    149.9650 ms |   2999.3000 ms |    [   1.00x ]
+                                          | RVV    |     77.4710 ms |   1549.4200 ms |    [   1.94x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Edge Canny (Full Pipeline)                | Std    |    234.4320 ms |   4688.6400 ms |    [   1.00x ]
+                                          | RVV    |    125.0420 ms |   2500.8400 ms |    [   1.87x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Edge discretizeAngles                     | Std    |     12.3950 ms |    247.9000 ms |    [   1.00x ]
+                                          | RVV    |      7.3200 ms |    146.4000 ms |    [   1.69x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Erosion (Gray 3x3)             | Std    |     61.8840 ms |   1237.6800 ms |    [   1.00x ]
+                                          | RVV    |     13.9960 ms |    279.9200 ms |    [   4.42x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Dilation (Gray 3x3)            | Std    |     62.0170 ms |   1240.3400 ms |    [   1.00x ]
+                                          | RVV    |     14.1440 ms |    282.8800 ms |    [   4.38x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Opening (Gray 3x3)             | Std    |    128.4290 ms |   2568.5800 ms |    [   1.00x ]
+                                          | RVV    |     34.1730 ms |    683.4600 ms |    [   3.76x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Closing (Gray 3x3)             | Std    |    127.8060 ms |   2556.1200 ms |    [   1.00x ]
+                                          | RVV    |     34.8330 ms |    696.6600 ms |    [   3.67x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Erosion (Binary 3x3)           | Std    |     20.0890 ms |    401.7800 ms |    [   1.00x ]
+                                          | RVV    |     15.3490 ms |    306.9800 ms |    [   1.31x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Dilation (Binary 3x3)          | Std    |     28.5680 ms |    571.3600 ms |    [   1.00x ]
+                                          | RVV    |     15.5320 ms |    310.6400 ms |    [   1.84x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Opening (Binary 3x3)           | Std    |     74.8230 ms |   1496.4600 ms |    [   1.00x ]
+                                          | RVV    |     31.8490 ms |    636.9800 ms |    [   2.35x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Morphology Closing (Binary 3x3)           | Std    |     77.8370 ms |   1556.7400 ms |    [   1.00x ]
+                                          | RVV    |     32.4600 ms |    649.2000 ms |    [   2.40x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Set Operation: Union (A | B)              | Std    |      9.4660 ms |    946.6000 ms |    [   1.00x ]
+                                          | RVV    |      9.7970 ms |    979.7000 ms |    [   0.97x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Set Operation: Intersection (A & B)       | Std    |      9.4400 ms |    944.0000 ms |    [   1.00x ]
+                                          | RVV    |      9.5700 ms |    957.0000 ms |    [   0.99x ]
+------------------------------------------|--------|----------------|----------------|----------------
+Set Operation: Subtraction (A - B)        | Std    |      9.4950 ms |    949.5000 ms |    [   1.00x ]
+                                          | RVV    |      9.6410 ms |    964.1000 ms |    [   0.98x ]
+------------------------------------------|--------|----------------|----------------|----------------
+======================================================================================================
