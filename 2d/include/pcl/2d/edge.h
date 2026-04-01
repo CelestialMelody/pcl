@@ -71,11 +71,11 @@ private:
                  int col,
                  pcl::PointCloud<pcl::PointXYZI>& maxima);
 
-  /** \brief This function discretizes the edge directions in steps of 22.5 degrees.
-   * \param thet point cloud containing the edge information in the direction channel
-   */
-  void
-  discretizeAngles(pcl::PointCloud<PointOutT>& thet);
+  // /** \brief This function discretizes the edge directions in steps of 22.5 degrees.
+  //  * \param thet point cloud containing the edge information in the direction channel
+  //  */
+  // void
+  // discretizeAngles(pcl::PointCloud<PointOutT>& thet);
 
   /** \brief This function suppresses the edges which don't form a local maximum
    * in the edge direction.
@@ -87,6 +87,13 @@ private:
   suppressNonMaxima(const pcl::PointCloud<PointXYZIEdge>& edges,
                     pcl::PointCloud<pcl::PointXYZI>& maxima,
                     float tLow);
+
+protected:
+  /** \brief This function discretizes the edge directions in steps of 22.5 degrees.
+   * \param thet point cloud containing the edge information in the direction channel
+   */
+  void
+  discretizeAngles(pcl::PointCloud<PointOutT>& thet);
 
 public:
   using Ptr = shared_ptr<Edge<PointInT, PointOutT>>;

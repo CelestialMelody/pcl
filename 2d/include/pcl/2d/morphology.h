@@ -49,6 +49,22 @@ private:
 
   PointCloudInPtr structuring_element_;
 
+  // Helper functions for pixel-level operations
+  void computePixelMin(int i, int j, pcl::PointCloud<PointT>& output) const;
+  void computePixelMax(int i, int j, pcl::PointCloud<PointT>& output) const;
+  void computePixelErosionBinary(int i, int j, pcl::PointCloud<PointT>& output) const;
+  void computePixelDilationBinary(int i, int j, pcl::PointCloud<PointT>& output) const;
+  void erosionGrayStandard(pcl::PointCloud<PointT>& output);
+  void dilationGrayStandard(pcl::PointCloud<PointT>& output);
+  void erosionBinaryStandard(pcl::PointCloud<PointT>& output);
+  void dilationBinaryStandard(pcl::PointCloud<PointT>& output);
+#if defined(__RVV10__)
+  void erosionGrayRVV(pcl::PointCloud<PointT>& output);
+  void dilationGrayRVV(pcl::PointCloud<PointT>& output);
+  void erosionBinaryRVV(pcl::PointCloud<PointT>& output);
+  void dilationBinaryRVV(pcl::PointCloud<PointT>& output);
+#endif
+
 public:
   using PCLBase<PointT>::input_;
 

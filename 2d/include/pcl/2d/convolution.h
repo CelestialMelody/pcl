@@ -129,13 +129,26 @@ public:
   void
   filter(pcl::PointCloud<PointT>& output);
 
+private:
+  /** Single-pixel convolution with current boundary option; used by filterStandard and filterRVV edge. */
+  void
+  computePixelIntensity(int i, int j, pcl::PointCloud<PointT>& output) const;
+
+  /** Standard (scalar / compiler-auto-vectorized) implementation. */
+  void
+  filterStandard(pcl::PointCloud<PointT>& output);
+#if defined(__RVV10__)
+  /** RVV intrinsics implementation; falls back to filterStandard if not filled in. */
+  void
+  filterRVV(pcl::PointCloud<PointT>& output);
+#endif
+
 protected:
   /** \brief This is an over-ride function for the pcl::Filter interface. */
   void
   applyFilter(pcl::PointCloud<PointT>&) override
   {}
 
-private:
   BOUNDARY_OPTIONS_ENUM boundary_options_;
   pcl::PointCloud<PointT> kernel_;
 };
