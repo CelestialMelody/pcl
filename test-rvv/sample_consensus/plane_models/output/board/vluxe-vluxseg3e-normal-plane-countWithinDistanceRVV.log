@@ -1,0 +1,160 @@
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0631 ms/iter  (12.6294 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0603 ms/iter  (12.0591 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0651 ms/iter  (13.0257 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0617 ms/iter  (12.3441 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_vluxseg sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: default (vluxseg3ei32 indexed segment load)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0742 ms/iter  (14.8453 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_vluxseg sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: default (vluxseg3ei32 indexed segment load)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0770 ms/iter  (15.3909 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_vluxseg sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: default (vluxseg3ei32 indexed segment load)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0636 ms/iter  (12.7127 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_vluxseg sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: default (vluxseg3ei32 indexed segment load)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0602 ms/iter  (12.0430 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_vluxseg sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: default (vluxseg3ei32 indexed segment load)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0594 ms/iter  (11.8744 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_vluxseg sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: default (vluxseg3ei32 indexed segment load)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0623 ms/iter  (12.4546 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_vluxseg sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: default (vluxseg3ei32 indexed segment load)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0626 ms/iter  (12.5284 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0651 ms/iter  (13.0157 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0660 ms/iter  (13.1933 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0651 ms/iter  (13.0254 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0697 ms/iter  (13.9368 ms total)
+========================================================
+❯ LD_LIBRARY_PATH=./libs ./bench_sac_normal_plane_load_gather sac_plane_test.pcd
+========================================================
+ PCL NormalPlane RVV Load-Strategy Bench (countWithinDistanceRVV)
+ Build mode: PCL_RVV_BENCHMARK_USE_GATHER (vluxei32 gather)
+ PCD file : sac_plane_test.pcd
+ Points   : 3283
+ Iterations: 200
+========================================================
+RVV countWithinDistanceRVV                : 0.0640 ms/iter  (12.8078 ms total)
+========================================================

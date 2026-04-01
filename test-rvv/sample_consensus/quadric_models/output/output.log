@@ -1,0 +1,150 @@
+qemu-riscv64 -L /opt/riscv64/sysroot -cpu rv64,v=true,vlen=256,elen=64 ./rvv_sac_quadric_test
+[==========] Running 33 tests from 13 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from SampleConsensusModelSphere
+[ RUN      ] SampleConsensusModelSphere.RANSAC
+[       OK ] SampleConsensusModelSphere.RANSAC (11 ms)
+[ RUN      ] SampleConsensusModelSphere.SIMD_countWithinDistance_sphere_smoke
+[       OK ] SampleConsensusModelSphere.SIMD_countWithinDistance_sphere_smoke (78 ms)
+[ RUN      ] SampleConsensusModelSphere.SIMD_countWithinDistance
+
+========================================================
+[ Performance Report: Sphere (3D Distance) ]
+Iterations          : 1000
+Standard Total Time : 23.5261 ms
+RVV Total Time      : 202.7451 ms
+Speedup (Std/RVV)   : 0.1160x
+========================================================
+[       OK ] SampleConsensusModelSphere.SIMD_countWithinDistance (1342 ms)
+[ RUN      ] SampleConsensusModelSphere.projectPoints
+[       OK ] SampleConsensusModelSphere.projectPoints (1 ms)
+[----------] 4 tests from SampleConsensusModelSphere (1434 ms total)
+
+[----------] 1 test from SampleConsensusModelNormalSphere
+[ RUN      ] SampleConsensusModelNormalSphere.RANSAC
+[       OK ] SampleConsensusModelNormalSphere.RANSAC (4 ms)
+[----------] 1 test from SampleConsensusModelNormalSphere (4 ms total)
+
+[----------] 1 test from SampleConsensusModelCone
+[ RUN      ] SampleConsensusModelCone.RANSAC
+[       OK ] SampleConsensusModelCone.RANSAC (11 ms)
+[----------] 1 test from SampleConsensusModelCone (11 ms total)
+
+[----------] 5 tests from SampleConsensusModelCylinder
+[ RUN      ] SampleConsensusModelCylinder.RANSAC
+[       OK ] SampleConsensusModelCylinder.RANSAC (6 ms)
+[ RUN      ] SampleConsensusModelCylinder.projectPoints
+[       OK ] SampleConsensusModelCylinder.projectPoints (0 ms)
+[ RUN      ] SampleConsensusModelCylinder.RadiusAccuracy
+[       OK ] SampleConsensusModelCylinder.RadiusAccuracy (1096 ms)
+[ RUN      ] SampleConsensusModelCylinder.SampleIntersectingLines
+[       OK ] SampleConsensusModelCylinder.SampleIntersectingLines (1 ms)
+[ RUN      ] SampleConsensusModelCylinder.SampleModelsSymmetric
+[       OK ] SampleConsensusModelCylinder.SampleModelsSymmetric (0 ms)
+[----------] 5 tests from SampleConsensusModelCylinder (1106 ms total)
+
+[----------] 4 tests from SampleConsensusModelCircle2D
+[ RUN      ] SampleConsensusModelCircle2D.RANSAC
+[       OK ] SampleConsensusModelCircle2D.RANSAC (4 ms)
+[ RUN      ] SampleConsensusModelCircle2D.SampleValidationPointsValid
+[       OK ] SampleConsensusModelCircle2D.SampleValidationPointsValid (0 ms)
+[ RUN      ] SampleConsensusModelCircle2D.SIMD_countWithinDistance_circle2d_smoke
+[       OK ] SampleConsensusModelCircle2D.SIMD_countWithinDistance_circle2d_smoke (66 ms)
+[ RUN      ] SampleConsensusModelCircle2D.SIMD_countWithinDistance
+
+========================================================
+[ Performance Report: Circle2D ]
+Iterations          : 1000
+Standard Total Time : 8.9933 ms
+RVV Total Time      : 57.0586 ms
+Speedup (Std/RVV)   : 0.1576x
+========================================================
+[       OK ] SampleConsensusModelCircle2D.SIMD_countWithinDistance (494 ms)
+[----------] 4 tests from SampleConsensusModelCircle2D (565 ms total)
+
+[----------] 1 test from SampleConsensusModelCircle3D
+[ RUN      ] SampleConsensusModelCircle3D.RANSAC
+[       OK ] SampleConsensusModelCircle3D.RANSAC (12 ms)
+[----------] 1 test from SampleConsensusModelCircle3D (12 ms total)
+
+[----------] 1 test from SampleConsensusModelEllipse3D
+[ RUN      ] SampleConsensusModelEllipse3D.RANSAC
+[       OK ] SampleConsensusModelEllipse3D.RANSAC (220 ms)
+[----------] 1 test from SampleConsensusModelEllipse3D (220 ms total)
+
+[----------] 1 test from SampleConsensusModelTorusOclusion
+[ RUN      ] SampleConsensusModelTorusOclusion.RANSAC
+[       OK ] SampleConsensusModelTorusOclusion.RANSAC (24 ms)
+[----------] 1 test from SampleConsensusModelTorusOclusion (24 ms total)
+
+[----------] 1 test from SampleConsensusModelTorusHorn
+[ RUN      ] SampleConsensusModelTorusHorn.RANSAC
+[       OK ] SampleConsensusModelTorusHorn.RANSAC (1 ms)
+[----------] 1 test from SampleConsensusModelTorusHorn (1 ms total)
+
+[----------] 1 test from SampleConsensusModelTorusRefine
+[ RUN      ] SampleConsensusModelTorusRefine.RANSAC
+[       OK ] SampleConsensusModelTorusRefine.RANSAC (1 ms)
+[----------] 1 test from SampleConsensusModelTorusRefine (1 ms total)
+
+[----------] 1 test from SampleConsensusModelTorus
+[ RUN      ] SampleConsensusModelTorus.RANSAC
+[pcl::SampleConsensusModelTorus::optimizeModelCoefficients] Not enough inliers to refine/optimize the model's coefficients (4)! Returning the same coefficients.
+[       OK ] SampleConsensusModelTorus.RANSAC (1 ms)
+[----------] 1 test from SampleConsensusModelTorus (1 ms total)
+
+[----------] 1 test from SampleConsensusModelTorusSelfIntersectSpindle
+[ RUN      ] SampleConsensusModelTorusSelfIntersectSpindle.RANSAC
+[       OK ] SampleConsensusModelTorusSelfIntersectSpindle.RANSAC (8 ms)
+[----------] 1 test from SampleConsensusModelTorusSelfIntersectSpindle (8 ms total)
+
+[----------] 11 tests from CollinearInputs/SampleConsensusModelCircle2DCollinearTest
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/0
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/0 (1 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/1
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/1 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/2
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/2 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/3
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/3 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/4
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/4 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/5
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/5 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/6
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/6 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/7
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/7 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/8
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/8 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/9
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/9 (0 ms)
+[ RUN      ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/10
+[pcl::SampleConsensusModelCircle2D::isSampleGood] Sample points too similar or collinear!
+[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given!
+[       OK ] CollinearInputs/SampleConsensusModelCircle2DCollinearTest.SampleValidationPointsInvalid/10 (0 ms)
+[----------] 11 tests from CollinearInputs/SampleConsensusModelCircle2DCollinearTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 33 tests from 13 test suites ran. (3398 ms total)
+[  PASSED  ] 33 tests.
