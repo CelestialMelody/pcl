@@ -116,7 +116,8 @@ NormalDistributionsTransform<PointSource, PointTarget, Scalar>::computeTransform
   // Convert initial guess matrix to 6 element transformation vector
   Eigen::Matrix<double, 6, 1> transform, score_gradient;
   Vector3 init_translation = eig_transformation.translation();
-  Vector3 init_rotation = eig_transformation.rotation().eulerAngles(0, 1, 2);
+  // Vector3 init_rotation = eig_transformation.rotation().eulerAngles(0, 1, 2); // Deprecated in Eigen 3.4+
+  Vector3 init_rotation = eig_transformation.rotation().canonicalEulerAngles(0, 1, 2);
   transform << init_translation.template cast<double>(),
       init_rotation.template cast<double>();
 
