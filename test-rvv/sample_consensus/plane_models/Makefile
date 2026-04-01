@@ -1,77 +1,112 @@
-# 交叉编译器
-CC = riscv64-unknown-linux-gnu-gcc
-CXX = riscv64-unknown-linux-gnu-g++
+ARCH ?= riscv
 
-# ================= 核心路径配置 =================
-# 1. 新安装的 PCL-RVV 路径
-PCL_INSTALL_ROOT = /workspace/riscv/pcl-rvv
+# =============================================================================
+#  Sample Consensus / Plane Models (RVV)
+# =============================================================================
 
-# 2. PCL 源码路径 (用于 pcl/test/gtest.h)
-PCL_SOURCE_ROOT = /workspace/pcl
+ifeq ($(ARCH), riscv)
+	CC  = riscv64-unknown-linux-gnu-gcc
+	CXX = riscv64-unknown-linux-gnu-g++
 
-# 3. 其他依赖库路径
-RISCV_DEPS = /workspace/riscv
-BOOST_ROOT = $(RISCV_DEPS)/boost
-EIGEN_ROOT = $(RISCV_DEPS)/eigen
-FLANN_ROOT = $(RISCV_DEPS)/flann
-LZ4_ROOT   = $(RISCV_DEPS)/lz4
-HDF5_ROOT  = $(RISCV_DEPS)/hdf5
-GTEST_ROOT = $(RISCV_DEPS)/gtest
-ZLIB_ROOT  = $(RISCV_DEPS)/zlib
+# -------------------------------------------------------------------------
+# 路径配置
+# -------------------------------------------------------------------------
+	WORKSPACE        = /home/zoomin/codes/RISCV/workspace
+	INSTALL_DIR      = $(WORKSPACE)/riscv
+	PCL_INSTALL_ROOT = $(INSTALL_DIR)/pcl-rvv
+	PCL_SOURCE_ROOT  = $(WORKSPACE)/pcl
+	RISCV_DEPS       = $(INSTALL_DIR)
 
-# 自动获取 sysroot
-RISCV_SYSROOT := $(shell $(CC) -print-sysroot)
+	BOOST_ROOT       = $(RISCV_DEPS)/boost
+	EIGEN_ROOT       = $(RISCV_DEPS)/eigen-rvv
+	FLANN_ROOT       = $(RISCV_DEPS)/flann
+	LZ4_ROOT         = $(RISCV_DEPS)/lz4
+	HDF5_ROOT        = $(RISCV_DEPS)/hdf5
+	GTEST_ROOT       = $(RISCV_DEPS)/gtest
+	ZLIB_ROOT        = $(RISCV_DEPS)/zlib
+	LIBPNG_ROOT      = $(RISCV_DEPS)/libpng
 
-# RISCV_LIB_PATH := /workspace/riscv/pcl-rvv/lib
-# RISCV_LIB_PATH := $(RISCV_LIB_PATH):/workspace/riscv/boost/lib
-# RISCV_LIB_PATH := $(RISCV_LIB_PATH):/workspace/riscv/eigen/lib
-# RISCV_LIB_PATH := $(RISCV_LIB_PATH):/workspace/riscv/flann/lib
-# RISCV_LIB_PATH := $(RISCV_LIB_PATH):/workspace/riscv/lz4/lib
-# RISCV_LIB_PATH := $(RISCV_LIB_PATH):/workspace/riscv/hdf5/lib
-# RISCV_LIB_PATH := $(RISCV_LIB_PATH):/workspace/riscv/gtest/lib
-# RISCV_LIB_PATH := $(RISCV_LIB_PATH):/workspace/riscv/zlib/lib
+	RISCV_SYSROOT := $(shell $(CC) -print-sysroot)
 
-# 定义为空格分隔的列表
-LIB_LIST = \
-	/workspace/riscv/pcl-rvv/lib \
-	/workspace/riscv/boost/lib \
-	/workspace/riscv/eigen/lib \
-	/workspace/riscv/flann/lib \
-	/workspace/riscv/lz4/lib \
-	/workspace/riscv/hdf5/lib \
-	/workspace/riscv/gtest/lib \
-	/workspace/riscv/zlib/lib
+	LIB_LIST = \
+		$(PCL_INSTALL_ROOT)/lib \
+		$(BOOST_ROOT)/lib \
+		$(FLANN_ROOT)/lib \
+		$(LZ4_ROOT)/lib \
+		$(HDF5_ROOT)/lib \
+		$(GTEST_ROOT)/lib \
+		$(ZLIB_ROOT)/lib \
+		$(LIBPNG_ROOT)/lib
 
-# 定义空格变量
-empty :=
-space := $(empty) $(empty)
+	empty :=
+	space := $(empty) $(empty)
+	RISCV_LIB_PATH := $(subst $(space),:,$(LIB_LIST))
+endif
 
-# 将空格替换为冒号
-RISCV_LIB_PATH := $(subst $(space),:,$(LIB_LIST))
+# =============================================================================
+# PCD Files
+# =============================================================================
+PCD_FILES_DIR = $(WORKSPACE)/pcl/test-rvv/sample_consensus/plane_models/pcd
+PCD_FILES = $(PCD_FILES_DIR)/sac_plane_test.pcd
 
+# =============================================================================
+#  Targets
+# =============================================================================
 
-# 目标
-TARGET = rvv_sac_plane_test
-SRCS = test_sample_consensus_plane_models.cpp
+# 目标（GTest 功能测试）
+TARGET_TEST = rvv_sac_plane_test
+SRCS_TEST   = test_sample_consensus_plane_models.cpp
+
+# 目标（纯 bench，测 RVV vs 标量）
+TARGET_BENCH = bench_sac_normal_plane
+SRCS_BENCH   = bench_sac_normal_plane.cpp
+
+# 编译产物目录
+BUILD_DIR = build
+TARGET_TEST_BIN  = $(BUILD_DIR)/$(TARGET_TEST)
+TARGET_BENCH_BIN = $(BUILD_DIR)/$(TARGET_BENCH)
+
+# =============================================================================
+#  Build Flags
+# =============================================================================
+
+EIGEN_RVV_FLAGS ?= -DEIGEN_RISCV64_USE_RVV10 -DEIGEN_RISCV64_DEFAULT_LMUL=2 -march=rv64gcv_zvl256b -mrvv-vector-bits=zvl
+
+# Prefer headers from the PCL source tree (no reinstall needed)
+# USE_PCL_SOURCE_HEADERS=1  -> include $(PCL_SOURCE_ROOT)/**/include before installed headers
+# USE_PCL_SOURCE_HEADERS=0  -> use only installed headers under $(PCL_INSTALL_ROOT)/include
+USE_PCL_SOURCE_HEADERS ?= 1
+
+# 这些文件都是我们修改过的，所以需要从源码中获取
+PCL_SOURCE_INCLUDES = \
+	-I$(PCL_SOURCE_ROOT)/common/include \
+	-I$(PCL_SOURCE_ROOT)/test/include \
+	-I$(PCL_SOURCE_ROOT)/sample_consensus/include
+
+ifeq ($(USE_PCL_SOURCE_HEADERS),1)
+	PCL_INCLUDE = $(PCL_SOURCE_INCLUDES) -I$(PCL_INSTALL_ROOT)/include/pcl-1.15
+else
+	PCL_INCLUDE = -I$(PCL_INSTALL_ROOT)/include/pcl-1.15
+endif
 
 # ================= 编译选项 (CXXFLAGS) =================
-CXXFLAGS = -std=c++17 -O2 -g \
-	-march=rv64gcv -mabi=lp64d \
+CXXFLAGS = -std=c++17 -O3 -g \
+	$(EIGEN_RVV_FLAGS) \
+	-mabi=lp64d \
 	-D__RVV10__ \
 	-DPCL_NO_PRECOMPILE \
-	-I$(PCL_SOURCE_ROOT)/test/include \
-	-I$(PCL_INSTALL_ROOT)/include/pcl-1.15 \
+	$(PCL_INCLUDE) \
 	-I$(BOOST_ROOT)/include \
 	-I$(EIGEN_ROOT)/include/eigen3 \
 	-I$(FLANN_ROOT)/include \
 	-I$(LZ4_ROOT)/include \
 	-I$(HDF5_ROOT)/include \
-	-I$(GTEST_ROOT)/include
+	-I$(GTEST_ROOT)/include \
+	-I$(ZLIB_ROOT)/include \
+	-I$(LIBPNG_ROOT)/include
 
 # ================= 链接选项 (LDFLAGS) =================
-# PCL 和依赖库（如 FLANN, HDF5 等）大多是动态库（.so），系统中并没有对应的静态库（.a）
-# 1. 去掉 -static
-# 2. 添加 -Wl,-rpath-link，告诉链接器去哪里找依赖库的 .so 文件 (解决找不到 -lz, -lhdf5 等问题)
+# 添加 -Wl,-rpath-link，告诉链接器去哪里找依赖库的 .so 文件 (解决找不到 -lz, -lhdf5 等问题)
 LDFLAGS = \
 	-L$(PCL_INSTALL_ROOT)/lib \
 	-L$(BOOST_ROOT)/lib \
@@ -80,16 +115,17 @@ LDFLAGS = \
 	-L$(HDF5_ROOT)/lib \
 	-L$(GTEST_ROOT)/lib \
 	-L$(ZLIB_ROOT)/lib \
+	-L$(LIBPNG_ROOT)/lib \
 	-Wl,-rpath-link=$(PCL_INSTALL_ROOT)/lib \
 	-Wl,-rpath-link=$(BOOST_ROOT)/lib \
 	-Wl,-rpath-link=$(FLANN_ROOT)/lib \
 	-Wl,-rpath-link=$(LZ4_ROOT)/lib \
 	-Wl,-rpath-link=$(HDF5_ROOT)/lib \
 	-Wl,-rpath-link=$(GTEST_ROOT)/lib \
-	-Wl,-rpath-link=$(ZLIB_ROOT)/lib
+	-Wl,-rpath-link=$(ZLIB_ROOT)/lib \
+	-Wl,-rpath-link=$(LIBPNG_ROOT)/lib
 
 # ================= 链接库 (LIBS) =================
-# 注意库的顺序：SampleConsensus -> Common -> 依赖
 LIBS = \
 	-lpcl_sample_consensus \
 	-lpcl_common \
@@ -100,17 +136,71 @@ LIBS = \
 	-lgtest -lgtest_main -lpthread \
 	-lboost_filesystem -lboost_iostreams -lboost_system \
 	-lm \
-	-lz -lhdf5 # 可能需要显式链接 lz4 和 hdf5
+	-lz -lhdf5 -llz4 -lpng # 显式链接 lz4, hdf5, libpng
 
-# ================= 构建规则 =================
-$(TARGET): $(SRCS)
-	$(CXX) $(CXXFLAGS) $(SRCS) $(LDFLAGS) $(LIBS) -o $(TARGET)
+# =============================================================================
+#  Build Rules
+# =============================================================================
+
+all: $(TARGET_TEST_BIN) $(TARGET_BENCH_BIN)
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(TARGET_TEST_BIN): $(SRCS_TEST) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(SRCS_TEST) $(LDFLAGS) $(LIBS) -o $(TARGET_TEST)
+	mv -f $(TARGET_TEST) $(TARGET_TEST_BIN)
+
+$(TARGET_BENCH_BIN): $(SRCS_BENCH) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(SRCS_BENCH) $(LDFLAGS) $(LIBS) -o $(TARGET_BENCH)
+	mv -f $(TARGET_BENCH) $(TARGET_BENCH_BIN)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET_TEST) $(TARGET_BENCH) $(TARGET_TEST_BIN) $(TARGET_BENCH_BIN)
 
-# 使用行内环境变量设置 (Inline Env Var)，比 export 更安全
+# =============================================================================
+#  Run Rules
+# =============================================================================
+
+# 使用行内环境变量设置 (Inline Env Var)
 # 注意 $$LD_LIBRARY_PATH 用来保留系统原有的路径
-run: $(TARGET)
+run_test: clean $(TARGET_TEST_BIN)
 	LD_LIBRARY_PATH=$(RISCV_LIB_PATH):$$LD_LIBRARY_PATH \
-	qemu-riscv64 -L $(RISCV_SYSROOT) -cpu rv64,v=true ./$(TARGET) sac_plane_test.pcd
+	qemu-riscv64 -L $(RISCV_SYSROOT) -cpu rv64,v=true,vlen=256,elen=64 ./$(TARGET_TEST_BIN) $(PCD_FILES)
+
+run_bench: clean $(TARGET_BENCH_BIN)
+	LD_LIBRARY_PATH=$(RISCV_LIB_PATH):$$LD_LIBRARY_PATH \
+	qemu-riscv64 -L $(RISCV_SYSROOT) -cpu rv64,v=true,vlen=256,elen=64 ./$(TARGET_BENCH_BIN) $(PCD_FILES)
+
+# =============================================================================
+#  Remote Deployment (RISC-V 板卡)
+# =============================================================================
+
+REMOTE_USER = root
+REMOTE_IP   = 172.16.89.126
+REMOTE_DIR  = ~/pcl-test/sample_consensus/plane_models
+REMOTE_PCD_FILES_DIR = $(REMOTE_DIR)/pcd
+REMOTE_PCD_FILES = $(notdir $(PCD_FILES))
+
+# 需要一并拷贝到板卡的 PCD 测试数据
+PCD_FILE ?= sac_plane_test.pcd
+
+deploy_files: $(PCD_FILES)
+	@echo "[DEPLOY] Syncing PCD test data $(PCD_FILES) only..."
+	@ssh $(REMOTE_USER)@$(REMOTE_IP) "mkdir -p $(REMOTE_PCD_FILES_DIR)"
+	@rsync -avzP $(PCD_FILES) $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_PCD_FILES_DIR)/
+	@echo "[DONE] PCD test data deployed."
+
+deploy_bench: clean $(TARGET_BENCH_BIN) $(PCD_FILE) deploy_files
+	@echo "[DEPLOY] Stripping and Syncing $(TARGET_BENCH)..."
+	@riscv64-unknown-linux-gnu-strip -s ./$(TARGET_BENCH_BIN) -o ./$(TARGET_BENCH)_stripped
+	@rsync -avzP ./$(TARGET_BENCH)_stripped $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_DIR)/$(TARGET_BENCH)
+	@rm -f ./$(TARGET_BENCH)_stripped
+	@echo "[DONE] $(TARGET_BENCH) deployed."
+
+deploy_test: clean $(TARGET_TEST_BIN) $(PCD_FILE) deploy_files
+	@echo "[DEPLOY] Stripping and Syncing $(TARGET_TEST)..."
+	@riscv64-unknown-linux-gnu-strip -s ./$(TARGET_TEST_BIN) -o ./$(TARGET_TEST)_stripped
+	@rsync -avzP ./$(TARGET_TEST)_stripped $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_DIR)/$(TARGET_TEST)
+	@rm -f ./$(TARGET_TEST)_stripped
+	@echo "[DONE] $(TARGET_TEST) deployed."

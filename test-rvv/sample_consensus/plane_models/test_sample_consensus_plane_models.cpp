@@ -418,56 +418,56 @@ class SampleConsensusModelPlaneTest : private SampleConsensusModelPlane<PointT>
 #endif
 };
 
-// TEST (SampleConsensusModelPlane, SIMD_countWithinDistance) // Test if all countWithinDistance implementations return the same value
-// {
-//   const auto seed = static_cast<unsigned> (std::time (nullptr));
-//   srand (seed);
-//   for (size_t i=0; i<100; i++) // Run as often as you like
-//   {
-//     // Generate a cloud with 1000 random points
-//     PointCloud<PointXYZ> cloud;
-//     pcl::Indices indices;
-//     cloud.resize (1000);
-//     for (std::size_t idx = 0; idx < cloud.size (); ++idx)
-//     {
-//       cloud[idx].x = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       cloud[idx].y = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       cloud[idx].z = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       if (rand () % 2 == 0)
-//       {
-//         indices.push_back (static_cast<int> (idx));
-//       }
-//     }
-//     SampleConsensusModelPlaneTest<PointXYZ> model (cloud.makeShared (), indices, true);
+TEST (SampleConsensusModelPlane, SIMD_countWithinDistance_plane_smoke) // Test if all countWithinDistance implementations return the same value
+{
+  const auto seed = static_cast<unsigned> (std::time (nullptr));
+  srand (seed);
+  for (size_t i=0; i<100; i++) // Run as often as you like
+  {
+    // Generate a cloud with 1000 random points
+    PointCloud<PointXYZ> cloud;
+    pcl::Indices indices;
+    cloud.resize (1000);
+    for (std::size_t idx = 0; idx < cloud.size (); ++idx)
+    {
+      cloud[idx].x = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      cloud[idx].y = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      cloud[idx].z = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      if (rand () % 2 == 0)
+      {
+        indices.push_back (static_cast<int> (idx));
+      }
+    }
+    SampleConsensusModelPlaneTest<PointXYZ> model (cloud.makeShared (), indices, true);
 
-//     // Generate random model parameters
-//     Eigen::VectorXf model_coefficients(4);
-//     model_coefficients << 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
-//                           2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
-//                           2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0, 0.0;
-//     model_coefficients.normalize ();
-//     model_coefficients(3) = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0; // Last parameter
+    // Generate random model parameters
+    Eigen::VectorXf model_coefficients(4);
+    model_coefficients << 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
+                          2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
+                          2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0, 0.0;
+    model_coefficients.normalize ();
+    model_coefficients(3) = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0; // Last parameter
 
-//     const double threshold = 0.1 * static_cast<double> (rand ()) / RAND_MAX; // threshold in [0; 0.1]
+    const double threshold = 0.1 * static_cast<double> (rand ()) / RAND_MAX; // threshold in [0; 0.1]
 
-//     // The number of inliers is usually somewhere between 0 and 100
-//     const auto res_standard = model.countWithinDistanceStandard (model_coefficients, threshold); // Standard
-//     PCL_DEBUG ("seed=%lu, i=%lu, model=(%f, %f, %f, %f), threshold=%f, res_standard=%lu\n", seed, i,
-//                model_coefficients(0), model_coefficients(1), model_coefficients(2), model_coefficients(3), threshold, res_standard);
-// #if defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
-//     const auto res_sse      = model.countWithinDistanceSSE (model_coefficients, threshold); // SSE
-//     ASSERT_EQ (res_standard, res_sse);
-// #endif
-// #if defined (__AVX__) && defined (__AVX2__)
-//     const auto res_avx      = model.countWithinDistanceAVX (model_coefficients, threshold); // AVX
-//     ASSERT_EQ (res_standard, res_avx);
-// #endif
-// #if defined (__RVV10__)
-//     const auto res_rvv      = model.countWithinDistanceRVV (model_coefficients, threshold); // RVV
-//     ASSERT_EQ (res_standard, res_rvv);
-// #endif
-//   }
-// }
+    // The number of inliers is usually somewhere between 0 and 100
+    const auto res_standard = model.countWithinDistanceStandard (model_coefficients, threshold); // Standard
+    PCL_DEBUG ("seed=%lu, i=%lu, model=(%f, %f, %f, %f), threshold=%f, res_standard=%lu\n", seed, i,
+               model_coefficients(0), model_coefficients(1), model_coefficients(2), model_coefficients(3), threshold, res_standard);
+#if defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
+    const auto res_sse      = model.countWithinDistanceSSE (model_coefficients, threshold); // SSE
+    ASSERT_EQ (res_standard, res_sse);
+#endif
+#if defined (__AVX__) && defined (__AVX2__)
+    const auto res_avx      = model.countWithinDistanceAVX (model_coefficients, threshold); // AVX
+    ASSERT_EQ (res_standard, res_avx);
+#endif
+#if defined (__RVV10__)
+    const auto res_rvv      = model.countWithinDistanceRVV (model_coefficients, threshold); // RVV
+    ASSERT_EQ (res_standard, res_rvv);
+#endif
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Test for SampleConsensusModelPlane (Pure Geometric Distance)
@@ -584,6 +584,10 @@ class SampleConsensusModelNormalPlaneTest : private SampleConsensusModelNormalPl
     using SampleConsensusModelNormalPlane<PointT, PointNT>::setNormalDistanceWeight;
     using SampleConsensusModelNormalPlane<PointT, PointNT>::setInputNormals;
     using SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceStandard;
+    using SampleConsensusModelNormalPlane<PointT, PointNT>::selectWithinDistanceStandard;
+    using SampleConsensusModelNormalPlane<PointT, PointNT>::getDistancesToModelStandard;
+    using SampleConsensusModelNormalPlane<PointT, PointNT>::setIndices;
+    using SampleConsensusModelNormalPlane<PointT, PointNT>::error_sqr_dists_;
 #if defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
     using SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceSSE;
 #endif
@@ -592,77 +596,281 @@ class SampleConsensusModelNormalPlaneTest : private SampleConsensusModelNormalPl
 #endif
 #if defined (__RVV10__)
     using SampleConsensusModelNormalPlane<PointT, PointNT>::countWithinDistanceRVV;
+    using SampleConsensusModelNormalPlane<PointT, PointNT>::selectWithinDistanceRVV;
+    using SampleConsensusModelNormalPlane<PointT, PointNT>::getDistancesToModelRVV;
 #endif
 };
 
-// TEST (SampleConsensusModelNormalPlane, SIMD_countWithinDistance) // Test if all countWithinDistance implementations return the same value
-// {
-//   const auto seed = static_cast<unsigned> (std::time (nullptr));
-//   srand (seed);
-//   for (size_t i=0; i<1000; i++) // Run as often as you like
-//   {
-//     // Generate a cloud with 10000 random points
-//     PointCloud<PointXYZ> cloud;
-//     PointCloud<Normal> normal_cloud;
-//     pcl::Indices indices;
-//     cloud.resize (10000);
-//     normal_cloud.resize (10000);
-//     for (std::size_t idx = 0; idx < cloud.size (); ++idx)
-//     {
-//       cloud[idx].x = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       cloud[idx].y = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       cloud[idx].z = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       const double a = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       const double b = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       const double c = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
-//       const double factor = 1.0 / sqrt(a * a + b * b + c * c);
-//       normal_cloud[idx].normal[0] = a * factor;
-//       normal_cloud[idx].normal[1] = b * factor;
-//       normal_cloud[idx].normal[2] = c * factor;
-//       if (rand () % 4 != 0)
-//       {
-//         indices.push_back (static_cast<int> (idx));
-//       }
-//     }
-//     SampleConsensusModelNormalPlaneTest<PointXYZ, Normal> model (cloud.makeShared (), indices, true);
+TEST (SampleConsensusModelNormalPlane, SIMD_selectWithinDistance)
+{
+  const auto seed = static_cast<unsigned> (std::time (nullptr));
+  std::srand (seed);
 
-//     const double normal_distance_weight = 0.3 * static_cast<double> (rand ()) / RAND_MAX; // in [0; 0.3]
-//     model.setNormalDistanceWeight (normal_distance_weight);
-//     model.setInputNormals (normal_cloud.makeShared ());
+  // === Timer Variables ===
+  double total_time_standard = 0.0;
+  double total_time_rvv = 0.0;
 
-//     // Generate random model parameters
-//     Eigen::VectorXf model_coefficients(4);
-//     model_coefficients << 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
-//                           2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
-//                           2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0, 0.0;
-//     model_coefficients.normalize ();
-//     model_coefficients(3) = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0; // Last parameter
+  // Configuration
+  const size_t iterations = 1000;
+  const size_t nr_points = 2000;
 
-//     const double threshold = 0.1 * static_cast<double> (rand ()) / RAND_MAX; // threshold in [0; 0.1]
+  for (size_t i = 0; i < iterations; i++)
+  {
+    // --- A. Data Generation ---
+    PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
+    PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
+    pcl::Indices indices;
 
-//     // The number of inliers is usually somewhere between 0 and 100
-//     const auto res_standard = model.countWithinDistanceStandard (model_coefficients, threshold); // Standard
-//     pcl::utils::ignore(res_standard);
-// #if defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
-//     const auto res_sse      = model.countWithinDistanceSSE (model_coefficients, threshold); // SSE
-//     EXPECT_LE ((res_standard > res_sse ? res_standard - res_sse : res_sse - res_standard), 2u) << "seed=" << seed << ", i=" << i
-//         << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
-//         << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
-// #endif
-// #if defined (__AVX__) && defined (__AVX2__)
-//     const auto res_avx      = model.countWithinDistanceAVX (model_coefficients, threshold); // AVX
-//     EXPECT_LE ((res_standard > res_avx ? res_standard - res_avx : res_avx - res_standard), 2u) << "seed=" << seed << ", i=" << i
-//         << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
-//         << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
-// #endif
-// #if defined (__RVV10__)
-//     const auto res_rvv      = model.countWithinDistanceRVV (model_coefficients, threshold); // RVV
-//     EXPECT_LE ((res_standard > res_rvv ? res_standard - res_rvv : res_rvv - res_standard), 2u) << "seed=" << seed << ", i=" << i
-//         << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
-//         << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
-// #endif
-//   }
-// }
+    cloud->resize (nr_points);
+    normals->resize (nr_points);
+    indices.resize (nr_points);
+
+    for (std::size_t idx = 0; idx < nr_points; ++idx)
+    {
+      // 1. Random Point XYZ, value range is [-5, 5]
+      (*cloud)[idx].x = 10.0f * static_cast<float> (rand ()) / RAND_MAX - 5.0f;
+      (*cloud)[idx].y = 10.0f * static_cast<float> (rand ()) / RAND_MAX - 5.0f;
+      (*cloud)[idx].z = 10.0f * static_cast<float> (rand ()) / RAND_MAX - 5.0f;
+
+      // 2. Random Normal (Must be Normalized), value range is [-0.5, 0.5]
+      Eigen::Vector3f n;
+      n[0] = static_cast<float> (rand ()) / RAND_MAX - 0.5f;
+      n[1] = static_cast<float> (rand ()) / RAND_MAX - 0.5f;
+      n[2] = static_cast<float> (rand ()) / RAND_MAX - 0.5f;
+      n.normalize();
+      (*normals)[idx].normal_x = n[0];
+      (*normals)[idx].normal_y = n[1];
+      (*normals)[idx].normal_z = n[2];
+
+      // 3. Random Curvature [0, 1]
+      (*normals)[idx].curvature = static_cast<float> (rand ()) / RAND_MAX;
+
+      indices[idx] = static_cast<int>(idx);
+    }
+
+    // Instantiate Proxy
+    SampleConsensusModelNormalPlaneTest<PointXYZ, Normal> model (cloud);
+    model.setInputNormals(normals);
+    model.setIndices(std::make_shared<std::vector<int>>(indices));
+
+    double w = 0.5 * static_cast<double>(rand()) / RAND_MAX;
+    model.setNormalDistanceWeight(w);
+
+    // Generate random model
+    Eigen::VectorXf model_coefficients(4);
+    model_coefficients << static_cast<float> (rand ()) / RAND_MAX - 0.5f,
+                          static_cast<float> (rand ()) / RAND_MAX - 0.5f,
+                          static_cast<float> (rand ()) / RAND_MAX - 0.5f, 0.0f;
+    model_coefficients.normalize ();
+    model_coefficients(3) = static_cast<float> (rand ()) / RAND_MAX * 5.0f;
+
+    const double threshold = 0.2 * static_cast<double> (rand ()) / RAND_MAX;
+
+    // Output containers
+    std::vector<int> inliers_standard, inliers_rvv;
+
+    // === 1. Measure Standard Implementation ===
+    {
+        model.error_sqr_dists_.clear();
+        model.error_sqr_dists_.resize(nr_points);
+        inliers_standard.resize(nr_points);
+
+        auto start_std = std::chrono::high_resolution_clock::now();
+        size_t count_std = model.selectWithinDistanceStandard (model_coefficients, threshold, inliers_standard, 0);
+        auto end_std = std::chrono::high_resolution_clock::now();
+        total_time_standard += std::chrono::duration<double, std::milli>(end_std - start_std).count();
+
+        inliers_standard.resize(count_std);
+        model.error_sqr_dists_.resize(count_std);
+    }
+
+    // 拷贝 Standard 的距离结果
+    std::vector<double> dists_standard = model.error_sqr_dists_;
+
+    // === 2. Measure RVV Implementation ===
+#if defined (__RVV10__)
+    {
+        model.error_sqr_dists_.clear();
+        model.error_sqr_dists_.resize(nr_points);
+        inliers_rvv.resize(nr_points);
+
+        auto start_rvv = std::chrono::high_resolution_clock::now();
+        size_t count_rvv = model.selectWithinDistanceRVV (model_coefficients, threshold, inliers_rvv);
+        auto end_rvv = std::chrono::high_resolution_clock::now();
+        total_time_rvv += std::chrono::duration<double, std::milli>(end_rvv - start_rvv).count();
+
+        inliers_rvv.resize(count_rvv);
+        model.error_sqr_dists_.resize(count_rvv);
+
+        // --- Correctness Check (Robust with Tolerance Counter) ---
+        const std::vector<double>& dists_rvv = model.error_sqr_dists_;
+
+        size_t idx_s = 0;
+        size_t idx_r = 0;
+
+        // NormalPlane 包含 acos，在 float(RVV) 和 double(Standard) 之间会产生较大的精度差异。
+        // value_tolerance: 允许距离计算值的绝对误差 (2e-3 足够覆盖大多数情况)
+        const double value_tolerance = 2e-3;
+        // boundary_tolerance: 判定是否在阈值边界的宽容度
+        const double boundary_tolerance = 2e-3;
+
+        // 允许的Mismatch数量 (模仿 countWithDistance 的 EXPECT_LE(diff, 2u))
+        size_t mismatch_count = 0;
+        const size_t max_allowed_mismatches = 2;
+
+        while (idx_s < inliers_standard.size() && idx_r < inliers_rvv.size()) {
+            int p_s = inliers_standard[idx_s];
+            int p_r = inliers_rvv[idx_r];
+
+            if (p_s == p_r) {
+                // Case 1: 共同选中的点
+                double d_s = dists_standard[idx_s];
+                double d_r = dists_rvv[idx_r];
+
+                if (std::abs(d_s - d_r) > value_tolerance) {
+                    mismatch_count++;
+                    if (mismatch_count > max_allowed_mismatches) {
+                         FAIL() << "Distance mismatch at point " << p_s
+                                << " (Common Inlier). Std=" << d_s << ", RVV=" << d_r
+                                << ", Diff=" << std::abs(d_s - d_r)
+                                << ". Too many mismatches!";
+                    }
+                }
+                idx_s++;
+                idx_r++;
+            } else if (p_s < p_r) {
+                // Case 2: Standard 选中 (漏检)
+                double d_s = dists_standard[idx_s];
+                // 必须在边界附近
+                if (std::abs(d_s - threshold) > boundary_tolerance) {
+                    mismatch_count++;
+                    if (mismatch_count > max_allowed_mismatches) {
+                        FAIL() << "Standard selected point " << p_s << " (dist=" << d_s
+                               << ", th=" << threshold << ") but RVV rejected it. Not a boundary case!";
+                    }
+                }
+                idx_s++;
+            } else { // p_s > p_r
+                // Case 3: RVV 选中 (误检)
+                double d_r = dists_rvv[idx_r];
+                // 必须在边界附近
+                if (std::abs(d_r - threshold) > boundary_tolerance) {
+                    mismatch_count++;
+                    if (mismatch_count > max_allowed_mismatches) {
+                        FAIL() << "RVV selected point " << p_r << " (dist=" << d_r
+                               << ", th=" << threshold << ") but Standard rejected it. Not a boundary case!";
+                    }
+                }
+                idx_r++;
+            }
+        }
+
+        // 处理尾部剩余 (Tail Check)
+        while (idx_s < inliers_standard.size()) {
+            double d_s = dists_standard[idx_s];
+            if (std::abs(d_s - threshold) > boundary_tolerance) mismatch_count++;
+            idx_s++;
+        }
+        while (idx_r < inliers_rvv.size()) {
+            double d_r = dists_rvv[idx_r];
+            if (std::abs(d_r - threshold) > boundary_tolerance) mismatch_count++;
+            idx_r++;
+        }
+
+        // 最终断言：错误总数不超过2
+        ASSERT_LE(mismatch_count, max_allowed_mismatches)
+            << "Too many mismatches (count=" << mismatch_count << ") at iter " << i << ", Seed: " << seed;
+    }
+#endif
+  }
+
+  // === Performance Report ===
+  std::cout << "\n========================================================" << std::endl;
+  std::cout << "[ Performance Report: NormalPlane (Select Within Distance) ]" << std::endl;
+  std::cout << "Points per cloud    : " << nr_points << std::endl;
+  std::cout << "Iterations          : " << iterations << std::endl;
+  std::cout << std::fixed << std::setprecision(4);
+  std::cout << "Standard Total Time : " << total_time_standard << " ms" << std::endl;
+
+#if defined (__RVV10__)
+  std::cout << "RVV Total Time      : " << total_time_rvv << " ms" << std::endl;
+  if (total_time_rvv > 0) {
+      std::cout << "Speedup (Std/RVV)   : " << total_time_standard / total_time_rvv << "x" << std::endl;
+  }
+#else
+  std::cout << "RVV Total Time      : N/A (RVV not enabled)" << std::endl;
+#endif
+  std::cout << "========================================================" << std::endl;
+}
+
+TEST (SampleConsensusModelNormalPlane, SIMD_countWithinDistance_normal_plane_smoke) // Test if all countWithinDistance implementations return the same value
+{
+  const auto seed = static_cast<unsigned> (std::time (nullptr));
+  srand (seed);
+  for (size_t i=0; i<1000; i++) // Run as often as you like
+  {
+    // Generate a cloud with 10000 random points
+    PointCloud<PointXYZ> cloud;
+    PointCloud<Normal> normal_cloud;
+    pcl::Indices indices;
+    cloud.resize (10000);
+    normal_cloud.resize (10000);
+    for (std::size_t idx = 0; idx < cloud.size (); ++idx)
+    {
+      cloud[idx].x = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      cloud[idx].y = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      cloud[idx].z = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      const double a = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      const double b = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      const double c = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0;
+      const double factor = 1.0 / sqrt(a * a + b * b + c * c);
+      normal_cloud[idx].normal[0] = a * factor;
+      normal_cloud[idx].normal[1] = b * factor;
+      normal_cloud[idx].normal[2] = c * factor;
+      if (rand () % 4 != 0)
+      {
+        indices.push_back (static_cast<int> (idx));
+      }
+    }
+    SampleConsensusModelNormalPlaneTest<PointXYZ, Normal> model (cloud.makeShared (), indices, true);
+
+    const double normal_distance_weight = 0.3 * static_cast<double> (rand ()) / RAND_MAX; // in [0; 0.3]
+    model.setNormalDistanceWeight (normal_distance_weight);
+    model.setInputNormals (normal_cloud.makeShared ());
+
+    // Generate random model parameters
+    Eigen::VectorXf model_coefficients(4);
+    model_coefficients << 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
+                          2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0,
+                          2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0, 0.0;
+    model_coefficients.normalize ();
+    model_coefficients(3) = 2.0 * static_cast<float> (rand ()) / RAND_MAX - 1.0; // Last parameter
+
+    const double threshold = 0.1 * static_cast<double> (rand ()) / RAND_MAX; // threshold in [0; 0.1]
+
+    // The number of inliers is usually somewhere between 0 and 100
+    const auto res_standard = model.countWithinDistanceStandard (model_coefficients, threshold); // Standard
+    pcl::utils::ignore(res_standard);
+#if defined (__SSE__) && defined (__SSE2__) && defined (__SSE4_1__)
+    const auto res_sse      = model.countWithinDistanceSSE (model_coefficients, threshold); // SSE
+    EXPECT_LE ((res_standard > res_sse ? res_standard - res_sse : res_sse - res_standard), 2u) << "seed=" << seed << ", i=" << i
+        << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
+        << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
+#endif
+#if defined (__AVX__) && defined (__AVX2__)
+    const auto res_avx      = model.countWithinDistanceAVX (model_coefficients, threshold); // AVX
+    EXPECT_LE ((res_standard > res_avx ? res_standard - res_avx : res_avx - res_standard), 2u) << "seed=" << seed << ", i=" << i
+        << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
+        << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
+#endif
+#if defined (__RVV10__)
+    const auto res_rvv      = model.countWithinDistanceRVV (model_coefficients, threshold); // RVV
+    EXPECT_LE ((res_standard > res_rvv ? res_standard - res_rvv : res_rvv - res_standard), 2u) << "seed=" << seed << ", i=" << i
+        << ", model=(" << model_coefficients(0) << ", " << model_coefficients(1) << ", " << model_coefficients(2) << ", " << model_coefficients(3)
+        << "), threshold=" << threshold << ", normal_distance_weight=" << normal_distance_weight << ", res_standard=" << res_standard << std::endl;
+#endif
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Test for SampleConsensusModelNormalPlane (Geometric + Angular Distance)
@@ -796,6 +1004,123 @@ TEST (SampleConsensusModelNormalPlane, SIMD_countWithinDistance)
   std::cout << "Speedup (Std/RVV)   : " << total_time_standard / total_time_rvv << "x" << std::endl;
 #endif
   std::cout << "========================================================" << std::endl;
+}
+
+TEST (SampleConsensusModelNormalPlane, SIMD_getDistancesToModel)
+{
+  const auto seed = static_cast<unsigned> (std::time (nullptr));
+  std::srand (seed);
+
+  // === Timer Variables ===
+  double total_time_standard = 0.0;
+  double total_time_rvv = 0.0;
+
+  // Configuration
+  const size_t iterations = 1000;
+  const size_t nr_points = 2000;
+
+  for (size_t i = 0; i < iterations; i++)
+  {
+    // --- A. Data Generation (与 SIMD_selectWithinDistance 完全一致) ---
+    PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
+    PointCloud<Normal>::Ptr normals (new PointCloud<Normal>);
+    pcl::Indices indices;
+
+    cloud->resize (nr_points);
+    normals->resize (nr_points);
+    indices.resize (nr_points);
+
+    for (std::size_t idx = 0; idx < nr_points; ++idx)
+    {
+      // 1. Random Point XYZ, value range is [-5, 5]
+      (*cloud)[idx].x = 10.0f * static_cast<float> (rand ()) / RAND_MAX - 5.0f;
+      (*cloud)[idx].y = 10.0f * static_cast<float> (rand ()) / RAND_MAX - 5.0f;
+      (*cloud)[idx].z = 10.0f * static_cast<float> (rand ()) / RAND_MAX - 5.0f;
+
+      // 2. Random Normal (Must be Normalized), value range is [-0.5, 0.5]
+      Eigen::Vector3f n;
+      n[0] = static_cast<float> (rand ()) / RAND_MAX - 0.5f;
+      n[1] = static_cast<float> (rand ()) / RAND_MAX - 0.5f;
+      n[2] = static_cast<float> (rand ()) / RAND_MAX - 0.5f;
+      n.normalize();
+      (*normals)[idx].normal_x = n[0];
+      (*normals)[idx].normal_y = n[1];
+      (*normals)[idx].normal_z = n[2];
+
+      // 3. Random Curvature [0, 1]
+      (*normals)[idx].curvature = static_cast<float> (rand ()) / RAND_MAX;
+
+      indices[idx] = static_cast<int>(idx);
+    }
+
+    // Instantiate Proxy
+    SampleConsensusModelNormalPlaneTest<PointXYZ, Normal> model (cloud);
+    model.setInputNormals(normals);
+    model.setIndices(std::make_shared<std::vector<int>>(indices));
+
+    // Random weight
+    double w = 0.5 * static_cast<double>(rand()) / RAND_MAX;
+    model.setNormalDistanceWeight(w);
+
+    // Generate random model coefficients
+    Eigen::VectorXf model_coefficients(4);
+    model_coefficients << static_cast<float> (rand ()) / RAND_MAX - 0.5f,
+                          static_cast<float> (rand ()) / RAND_MAX - 0.5f,
+                          static_cast<float> (rand ()) / RAND_MAX - 0.5f,
+                          0.0f;
+    model_coefficients.normalize ();
+    model_coefficients(3) = static_cast<float> (rand ()) / RAND_MAX * 5.0f;
+
+    // Output containers
+    std::vector<double> distances_standard, distances_rvv;
+
+    distances_rvv.resize(nr_points);
+    distances_standard.resize(nr_points);
+
+    // === 1. Measure Standard Implementation ===
+    {
+      auto start = std::chrono::high_resolution_clock::now ();
+      model.getDistancesToModelStandard (model_coefficients, distances_standard);
+      auto end = std::chrono::high_resolution_clock::now ();
+      total_time_standard += std::chrono::duration<double, std::milli> (end - start).count ();
+    }
+
+    // === 2. Measure RVV Implementation ===
+#if defined (__RVV10__)
+    {
+      auto start = std::chrono::high_resolution_clock::now ();
+      model.getDistancesToModelRVV (model_coefficients, distances_rvv);
+      auto end = std::chrono::high_resolution_clock::now ();
+      total_time_rvv += std::chrono::duration<double, std::milli> (end - start).count ();
+    }
+
+    // === 3. Verification ===
+    ASSERT_EQ (distances_standard.size (), distances_rvv.size ());
+
+    for (std::size_t idx = 0; idx < distances_standard.size (); ++idx)
+    {
+      EXPECT_NEAR (distances_standard[idx], distances_rvv[idx], 5e-3)
+        << "Mismatch at index " << idx
+        << ", weight=" << w
+        << ", coeffs=[" << model_coefficients.transpose() << "]";
+    }
+#endif
+  }
+
+  // === Performance Report ===
+  std::cout << "\n========================================================" << std::endl;
+  std::cout << "[ Performance Report: NormalPlane (getDistancesToModel) ]" << std::endl;
+  std::cout << "Points per cloud    : " << nr_points << std::endl;
+  std::cout << "Iterations          : " << iterations << std::endl;
+  std::cout << std::fixed << std::setprecision (4);
+  std::cout << "Standard Total Time : " << total_time_standard << " ms" << std::endl;
+
+#if defined (__RVV10__)
+  std::cout << "RVV Total Time      : " << total_time_rvv << " ms" << std::endl;
+  if (total_time_rvv > 0.0)
+    std::cout << "Speedup (Std/RVV)   : " << total_time_standard / total_time_rvv << "x" << std::endl;
+#endif
+  std::cout << "========================================================\n" << std::endl;
 }
 
 TEST (SampleConsensusModelPlane, OptimizeFarFromOrigin)
