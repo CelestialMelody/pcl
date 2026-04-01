@@ -343,7 +343,7 @@ inline __m128 dist4 (const std::size_t i, const __m128 &a_vec, const __m128 &b_v
   * redundant memory traffic.
   */
 inline vfloat32m2_t
-distRVV (const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec, const vfloat32m2_t &z_vec,
+distRVV_f32m2 (const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec, const vfloat32m2_t &z_vec,
          const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec, const vfloat32m2_t &c_vec, const vfloat32m2_t &d_vec,
          const std::size_t vl) const
 {

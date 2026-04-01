@@ -305,7 +305,7 @@ namespace pcl
 #endif
 
 #ifdef __RVV10__
-      inline vfloat32m2_t sqr_distRVV (const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec,
+      inline vfloat32m2_t sqr_distRVV_f32m2 (const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec,
                                        const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec,
                                        const std::size_t vl) const;
 #endif

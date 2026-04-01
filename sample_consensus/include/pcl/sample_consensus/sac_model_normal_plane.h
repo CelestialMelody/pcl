@@ -165,6 +165,26 @@ namespace pcl
       using SampleConsensusModel<PointT>::sample_size_;
       using SampleConsensusModel<PointT>::model_size_;
 
+      /** \brief This implementation uses no SIMD instructions. It is not intended for normal use.
+        * See selectWithinDistance which automatically uses the fastest implementation.
+        */
+      std::size_t
+      selectWithinDistanceStandard (const Eigen::VectorXf &model_coefficients,
+                                    const double threshold,
+                                    Indices &inliers,
+                                    std::size_t i = 0,
+                                    std::size_t current_count = 0);
+
+#if defined (__RVV10__)
+      /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
+        * See selectWithinDistance which automatically uses the fastest implementation.
+        */
+      std::size_t
+      selectWithinDistanceRVV (const Eigen::VectorXf &model_coefficients,
+                               const double threshold,
+                               Indices &inliers);
+#endif
+
       /** This implementation uses no SIMD instructions. It is not intended for normal use.
         * See countWithinDistance which automatically uses the fastest implementation.
         */
@@ -194,13 +214,29 @@ namespace pcl
 #endif
 
 #if defined (__RVV10__)
-  /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
-    * See countWithinDistance which automatically uses the fastest implementation.
-    */
-    std::size_t
-    countWithinDistanceRVV (const Eigen::VectorXf &model_coefficients,
-                            const double threshold,
-                            std::size_t i = 0) const;
+      /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
+      * See countWithinDistance which automatically uses the fastest implementation.
+      */
+      std::size_t
+      countWithinDistanceRVV (const Eigen::VectorXf &model_coefficients,
+                              const double threshold,
+                              std::size_t i = 0) const;
+#endif
+
+      /** \brief This implementation uses no SIMD instructions. It is not intended for normal use.
+        * See selectWithinDistance which automatically uses the fastest implementation.
+        */
+      void
+      getDistancesToModelStandard (const Eigen::VectorXf &model_coefficients,
+                                   std::vector<double> &distances,
+                                   std::size_t i = 0) const;
+#if defined (__RVV10__)
+      /** This implementation uses RISC-V Vector (RVV) instructions. It is not intended for normal use.
+        * See getDistancesToModel which automatically uses the fastest implementation.
+        */
+      void
+      getDistancesToModelRVV (const Eigen::VectorXf &model_coefficients,
+                              std::vector<double> &distances) const;
 #endif
   };
 }

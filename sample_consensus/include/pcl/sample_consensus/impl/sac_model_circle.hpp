@@ -139,7 +139,7 @@ template <typename PointT> inline __m128 pcl::SampleConsensusModelCircle2D<Point
 // This function computes the squared distances (i.e. the distances without the square root) of vector-length points to the center of the circle
 template <typename PointT>
 inline vfloat32m2_t
-pcl::SampleConsensusModelCircle2D<PointT>::sqr_distRVV (
+pcl::SampleConsensusModelCircle2D<PointT>::sqr_distRVV_f32m2 (
     const vfloat32m2_t &x_vec, const vfloat32m2_t &y_vec,
     const vfloat32m2_t &a_vec, const vfloat32m2_t &b_vec,
     const std::size_t vl) const
@@ -280,6 +280,10 @@ pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistanceSSE (
   for (; (i + 4) <= indices_->size (); i += 4)
   {
     const __m128 sqr_dist = sqr_dist4 (i, a_vec, b_vec);
+    // Warning: _mm_cmplt_ps stands for Compare Packed Single-Precision Floating-Point Values for Less Than (i.e., <)
+    // Here, it implements (sqr_inner_radius < sqr_dist) && (sqr_dist < sqr_outer_radius)
+    // It should include the equality boundaries like the Standard version;
+    // strictly speaking, _mm_cmple_ps (<=) should be used
     const __m128 mask = _mm_and_ps (_mm_cmplt_ps (sqr_inner_radius, sqr_dist), _mm_cmplt_ps (sqr_dist, sqr_outer_radius)); // The mask contains 1 bits if the corresponding points are inliers, else 0 bits
     res = _mm_add_epi32 (res, _mm_and_si128 (_mm_set1_epi32 (1), _mm_castps_si128 (mask))); // The latter part creates a vector with ones (as 32bit integers) where the points are inliers
     //const int res = _mm_movemask_ps (mask);
@@ -315,6 +319,9 @@ pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistanceAVX (
   for (; (i + 8) <= indices_->size (); i += 8)
   {
     const __m256 sqr_dist = sqr_dist8 (i, a_vec, b_vec);
+    // Warning: The _CMP_LT_OQ macro means Less Than (strictly less than <)
+    // This causes points on the boundary to be incorrectly discarded.
+    // To align with the <= and >= in the Standard, _CMP_LE_OQ (Less Equal) should have been used here
     const __m256 mask = _mm256_and_ps (_mm256_cmp_ps (sqr_inner_radius, sqr_dist, _CMP_LT_OQ), _mm256_cmp_ps (sqr_dist, sqr_outer_radius, _CMP_LT_OQ)); // The mask contains 1 bits if the corresponding points are inliers, else 0 bits
     res = _mm256_add_epi32 (res, _mm256_and_si256 (_mm256_set1_epi32 (1), _mm256_castps_si256 (mask))); // The latter part creates a vector with ones (as 32bit integers) where the points are inliers
     //const int res = _mm256_movemask_ps (mask);
@@ -355,7 +362,10 @@ pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistanceRVV (
   const float a = model_coefficients[0];
   const float b = model_coefficients[1];
   const float r = model_coefficients[2];
-  const float sqr_inner_radius = (r - static_cast<float>(threshold)) * (r - static_cast<float>(threshold));
+  // 对极小半径的保护 (r <= threshold 时设为 0.0f)
+  const float sqr_inner_radius = (r <= static_cast<float>(threshold))
+                                  ? 0.0f
+                                  : (r - static_cast<float>(threshold)) * (r - static_cast<float>(threshold));
   const float sqr_outer_radius = (r + static_cast<float>(threshold)) * (r + static_cast<float>(threshold));
 
   // Setup base pointers for gathering
@@ -383,12 +393,13 @@ pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistanceRVV (
     const vfloat32m2_t v_b = __riscv_vfmv_v_f_f32m2(b, vl);
 
     // Compute Squared Distances
-    const vfloat32m2_t v_sqr_dist = sqr_distRVV(v_px, v_py, v_a, v_b, vl);
+    const vfloat32m2_t v_sqr_dist = sqr_distRVV_f32m2(v_px, v_py, v_a, v_b, vl);
 
     // Inlier Mask Generation
-    // Logic: (sqr_dist > sqr_inner) && (sqr_dist < sqr_outer)
-    const vbool16_t mask_inner = __riscv_vmfgt_vf_f32m2_b16(v_sqr_dist, sqr_inner_radius, vl);
-    const vbool16_t mask_outer = __riscv_vmflt_vf_f32m2_b16(v_sqr_dist, sqr_outer_radius, vl);
+    // Logic: (sqr_dist >= sqr_inner) && (sqr_dist <= sqr_outer)
+    // 使用大于等于 (vmfge) 和 小于等于 (vmfle) 严格对齐 Standard 行为
+    const vbool16_t mask_inner = __riscv_vmfge_vf_f32m2_b16(v_sqr_dist, sqr_inner_radius, vl);
+    const vbool16_t mask_outer = __riscv_vmfle_vf_f32m2_b16(v_sqr_dist, sqr_outer_radius, vl);
     const vbool16_t inliers_mask = __riscv_vmand_mm_b16(mask_inner, mask_outer, vl);
 
     // Count the set bits in the mask (Population Count).

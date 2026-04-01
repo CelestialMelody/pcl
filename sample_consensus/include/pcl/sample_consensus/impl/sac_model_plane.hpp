@@ -311,7 +311,6 @@ pcl::SampleConsensusModelPlane<PointT>::countWithinDistanceAVX (
 
 //////////////////////////////////////////////////////////////////////////
 #if defined (__RVV10__)
-
 template <typename PointT> std::size_t
 pcl::SampleConsensusModelPlane<PointT>::countWithinDistanceRVV (
       const Eigen::VectorXf &model_coefficients, const double threshold, std::size_t i) const
@@ -367,7 +366,7 @@ pcl::SampleConsensusModelPlane<PointT>::countWithinDistanceRVV (
 
     // Calculate |ax + by + cz + d|.
     // We call the pure math kernel 'distRVV' defined in the base class.
-    const vfloat32m2_t v_dist = distRVV(v_px, v_py, v_pz, v_a, v_b, v_c, v_d, vl);
+    const vfloat32m2_t v_dist = distRVV_f32m2(v_px, v_py, v_pz, v_a, v_b, v_c, v_d, vl);
 
     // Generate a boolean mask where dist < threshold.
     // Equivalent to AVX: _mm256_cmp_ps(..., _CMP_LT_OQ)
