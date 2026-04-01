@@ -11,3 +11,13 @@ trim_trailing_whitespace = true
 
 # Visual C++ Code Style settings
 cpp_generate_documentation_comments = doxygen_slash_star
+
+[Makefile]
+indent_style = tab
+indent_size = 8
+tab_width = 8
+
+[*.mk]
+indent_style = tab
+indent_size = 8
+tab_width = 8
