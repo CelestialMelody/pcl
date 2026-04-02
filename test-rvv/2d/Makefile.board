@@ -3,8 +3,8 @@
 #
 # 使用前请保证：
 #   1) 开发机已 make deploy_bench_std / deploy_bench_rvv 等，把二进制同步到 $(REMOTE_DIR)
-#   2) 将本仓库 script/ 同步到板卡：$(REMOTE_DIR)/script/
-#      （至少含 analyze_bench_compare.py；可选建 .venv 仅用 python3 亦可）
+#   2) 将本仓库 test-rvv/script/analyze_bench_compare.py 同步到板卡：$(REMOTE_DIR)/script/
+#      （可选建 .venv 仅用 python3 亦可）
 #   3) mkdir -p $(REMOTE_OUTPUT_DIR) 由下方 run_bench_* 自动创建
 #
 # 用法（在板卡上，于含本 Makefile 的目录执行，或复制为 /root/pcl-test/2d/Makefile.run）:
@@ -29,7 +29,7 @@ BENCH_COMPARE_SCRIPT = $(SCRIPT_DIR)/analyze_bench_compare.py
 
 REMOTE_BENCH_STD_OUTPUT_FILE  = $(REMOTE_OUTPUT_DIR)/run_bench_std.log
 REMOTE_BENCH_RVV_OUTPUT_FILE  = $(REMOTE_OUTPUT_DIR)/run_bench_rvv.log
-# 可选：对比表同时保存到文件，例如 BENCH_COMPARE_SAVE=$(REMOTE_OUTPUT_DIR)/bench_compare.txt
+# 可选：对比表同时保存到文件，例如 BENCH_COMPARE_SAVE=$(REMOTE_OUTPUT_DIR)/bench_compare.log
 BENCH_COMPARE_SAVE ?=
 
 # 优先使用板卡上 $(REMOTE_DIR)/.venv/bin/python，否则 python3
@@ -75,7 +75,7 @@ $(REMOTE_OUTPUT_DIR):
         mkdir -p $(REMOTE_OUTPUT_DIR)
 
 analyze_bench_compare:
-        @test -f '$(BENCH_COMPARE_SCRIPT)' || (echo "缺少 $(BENCH_COMPARE_SCRIPT)，请将开发机 test-rvv/2d/script/ 同步到板卡 $(SCRIPT_DIR)/" >&2; exit 1)
+        @test -f '$(BENCH_COMPARE_SCRIPT)' || (echo "缺少 $(BENCH_COMPARE_SCRIPT)，请将开发机 test-rvv/script/analyze_bench_compare.py 同步到板卡 $(SCRIPT_DIR)/" >&2; exit 1)
         $(PYTHON) '$(BENCH_COMPARE_SCRIPT)' \
                 --std-log $(REMOTE_BENCH_STD_OUTPUT_FILE) \
                 --rvv-log $(REMOTE_BENCH_RVV_OUTPUT_FILE) \

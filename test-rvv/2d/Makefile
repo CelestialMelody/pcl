@@ -4,7 +4,7 @@
 #  Usage:
 # make run_bench        -> 同 common：clean + 编当前 TARGET_BENCH + generate_vec_report，再运行
 # make run_bench_std    -> 子 make：TARGET_BENCH=$(TARGET_BENCH_STD)，USE_PCL_RVV10=0
-# make run_bench_rvv    -> 子 make：TARGET_BENCH=bench_2d_app_rvv，USE_PCL_RVV10=1
+# make run_bench_rvv    -> 子 make：TARGET_BENCH=bench_2d_rvv，USE_PCL_RVV10=1
 # make analyze_bench_compare -> 解析 output/run_bench_{std,rvv}.log，打印 Std vs RVV 对比表（.venv 优先）
 #   板卡另存日志： make BENCH_STD_OUTPUT_FILE=output/board/run_bench_std.log \
 #                  BENCH_RVV_OUTPUT_FILE=output/board/run_bench_rvv.log analyze_bench_compare
@@ -27,12 +27,18 @@ FILTER_REPORT         = $(LOG_DIR)/filtered_report.log
 ANALYZE_REPORT        = $(LOG_DIR)/analyzed_vec_report.log
 
 OUTPUT_DIR            = output
-BENCH_STD_OUTPUT_FILE = $(OUTPUT_DIR)/run_bench_std.log
-BENCH_RVV_OUTPUT_FILE = $(OUTPUT_DIR)/run_bench_rvv.log
-TEST_OUTPUT_FILE      = $(OUTPUT_DIR)/run_test.log
+OUTPUT_DIR_QEMU       = $(OUTPUT_DIR)/qemu
+OUTPUT_DIR_BOARD      = $(OUTPUT_DIR)/board
+BENCH_STD_OUTPUT_FILE = $(OUTPUT_DIR_QEMU)/run_bench_std.log
+BENCH_RVV_OUTPUT_FILE = $(OUTPUT_DIR_QEMU)/run_bench_rvv.log
+TEST_OUTPUT_FILE      = $(OUTPUT_DIR_QEMU)/run_test.log
+BENCH_COMPARE_OUTPUT_FILE = $(OUTPUT_DIR_QEMU)/analyze_bench_compare.log
 
-ANALYZE_VEC_SCRIPT    = $(SCRIPT_DIR)/analyze_vec_log.py
-BENCH_COMPARE_SCRIPT  = $(SCRIPT_DIR)/analyze_bench_compare.py
+# 与 test-rvv/common 等目录共用（单份维护）
+TEST_RVV_SHARED_SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../script)
+
+ANALYZE_VEC_SCRIPT    = $(TEST_RVV_SHARED_SCRIPT_DIR)/analyze_vec_log.py
+BENCH_COMPARE_SCRIPT  = $(TEST_RVV_SHARED_SCRIPT_DIR)/analyze_bench_compare.py
 # 优先使用本目录 .venv（与 `source .venv/bin/activate` 等价）；否则退回系统 python3
 VENV_PYTHON           := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/.venv/bin/python)
 PYTHON_BENCH_COMPARE  := $(shell test -x '$(VENV_PYTHON)' && echo '$(VENV_PYTHON)' || echo python3)
@@ -47,8 +53,8 @@ ASM_DIR               = $(BUILD_DIR)/asm
 # Std: USE_PCL_RVV10=0（关闭 PCL 手写 RVV 内核），但依旧保留 EIGEN_RVV_FLAGS
 # RVV: USE_PCL_RVV10=1
 # 与 test-rvv/common/Makefile 一致：仅 TARGET_BENCH / TARGET_BENCH_BIN；默认即为带 RVV10 手写内核的二进制名。
-TARGET_BENCH_STD ?= bench_2d_app_std
-TARGET_BENCH ?= bench_2d_app
+TARGET_BENCH_STD ?= bench_2d_std
+TARGET_BENCH ?= bench_2d
 
 SRCS_BENCH            = bench_2d.cpp
 TARGET_BENCH_STD_BIN = $(BUILD_DIR)/$(ARCH)/$(TARGET_BENCH_STD)
@@ -61,12 +67,12 @@ TARGET_BENCH_STD_FULL_ASM = $(ASM_DIR)/$(ARCH)/$(TARGET_BENCH_STD).full.asm
 TARGET_BENCH_FULL_ASM = $(ASM_DIR)/$(ARCH)/$(TARGET_BENCH).full.asm
 
 SRCS_TEST             = test_2d.cpp
-TARGET_TEST           = test_2d_app
+TARGET_TEST           = test_2d
 TARGET_TEST_BIN       = $(BUILD_DIR)/$(ARCH)/$(TARGET_TEST)
 
 # Edge store micro-benchmark (independent from existing test_2d)
 SRCS_EDGE_STORE_TEST  = test_edge_store_bench.cpp
-TARGET_EDGE_STORE_TEST = test_edge_store_bench_app
+TARGET_EDGE_STORE_TEST = test_edge_store_bench
 TARGET_EDGE_STORE_TEST_BIN = $(BUILD_DIR)/$(ARCH)/$(TARGET_EDGE_STORE_TEST)
 
 # 数学函数相关测试
@@ -315,6 +321,12 @@ $(ASM_DIR)/$(ARCH): $(ASM_DIR)
 $(BUILD_DIR)/$(ARCH): $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/$(ARCH)
 
+$(OUTPUT_DIR_QEMU): $(OUTPUT_DIR)
+	mkdir -p $(OUTPUT_DIR_QEMU)
+
+$(OUTPUT_DIR_BOARD): $(OUTPUT_DIR)
+	mkdir -p $(OUTPUT_DIR_BOARD)
+
 make_dirs: $(BUILD_DIR)/$(ARCH) $(LOG_DIR) $(LOG_VEC_MISS_DIR) $(VEC_LOGS_DIR) $(PERF_DIR) $(ASM_DIR)/$(ARCH) $(OUTPUT_DIR)
 
 # ================= common.hpp 数学函数测试（迁移到 common/common） =================
@@ -342,7 +354,7 @@ run_expf_remez_vs_taylor:
 
 # ========= 2D test & bench =========
 $(TARGET_TEST_BIN): $(SRCS_TEST) | $(BUILD_DIR)/$(ARCH) $(LOG_VEC_MISS_DIR)
-	@echo "[BUILD] Compiling test_2d_app ($(ARCH))..."
+	@echo "[BUILD] Compiling test_2d ($(ARCH))..."
 	$(CXX) $(CXXFLAGS) $(SRCS_TEST) $(LDFLAGS) $(LIBS) -o $(TARGET_TEST_BIN)
 
 $(TARGET_EDGE_STORE_TEST_BIN): $(SRCS_EDGE_STORE_TEST) | $(BUILD_DIR)/$(ARCH) $(LOG_VEC_MISS_DIR)
@@ -353,7 +365,7 @@ $(TARGET_BENCH_BIN): $(SRCS_BENCH) | $(BUILD_DIR)/$(ARCH) $(LOG_VEC_MISS_DIR)
 	@echo "[BUILD] Compiling $(TARGET_BENCH) ($(ARCH)) USE_PCL_RVV10=$(USE_PCL_RVV10)..."
 	$(CXX) $(CXXFLAGS) $(SRCS_BENCH) $(LDFLAGS) $(LIBS) -o $(TARGET_BENCH_BIN)
 
-run_test: clean_test $(TARGET_TEST_BIN) | $(BUILD_DIR)/$(ARCH)
+run_test: clean_test $(TARGET_TEST_BIN) | $(BUILD_DIR)/$(ARCH) $(OUTPUT_DIR_QEMU)
 	@echo "[RUN] Executing Unit Test on $(ARCH)..."
 	$(RUN_CMD) ./$(TARGET_TEST_BIN) $(PCD_FILES) 2>&1 | tee $(TEST_OUTPUT_FILE)
 
@@ -365,16 +377,16 @@ run_bench: clean_bench $(TARGET_BENCH_BIN) generate_vec_report | $(BUILD_DIR)/$(
 	@echo "[RUN] Executing Benchmark on $(ARCH) USE_PCL_RVV10=$(USE_PCL_RVV10)..."
 	$(RUN_CMD) ./$(TARGET_BENCH_BIN)
 
-run_bench_std:
+run_bench_std: clean_bench_std | $(BUILD_DIR)/$(ARCH) $(OUTPUT_DIR_QEMU)
 	@$(MAKE) ARCH=$(ARCH) run_bench USE_PCL_RVV10=0 TARGET_BENCH=$(TARGET_BENCH_STD) 2>&1 | tee $(BENCH_STD_OUTPUT_FILE)
 
-run_bench_rvv:
+run_bench_rvv: clean_bench_rvv | $(BUILD_DIR)/$(ARCH) $(OUTPUT_DIR_QEMU)
 	@$(MAKE) ARCH=$(ARCH) run_bench USE_PCL_RVV10=1 TARGET_BENCH=$(TARGET_BENCH) 2>&1 | tee $(BENCH_RVV_OUTPUT_FILE)
 
 # 读取 $(BENCH_STD_OUTPUT_FILE) 与 $(BENCH_RVV_OUTPUT_FILE)，打印 Std vs RVV 对比表（需先跑 run_bench_std / run_bench_rvv）
-analyze_bench_compare:
+analyze_bench_compare: $(BENCH_STD_OUTPUT_FILE) $(BENCH_RVV_OUTPUT_FILE) | $(OUTPUT_DIR_QEMU)
 	@$(PYTHON_BENCH_COMPARE) $(BENCH_COMPARE_SCRIPT) \
-		--std-log $(BENCH_STD_OUTPUT_FILE) --rvv-log $(BENCH_RVV_OUTPUT_FILE)
+		--std-log $(BENCH_STD_OUTPUT_FILE) --rvv-log $(BENCH_RVV_OUTPUT_FILE) 2>&1 | tee $(BENCH_COMPARE_OUTPUT_FILE)
 
 # ================= 日志分析相关 =================
 # 构建 RVV bench -> 选最新日志 -> 过滤 -> 分析
@@ -496,8 +508,8 @@ clean_bench_std:
 	@echo "-------------------------------------------------------"
 
 clean_bench_rvv:
-	@echo "[CLEAN] Removing bench bench_2d_app_rvv..."
-	rm -rf bench_2d_app_rvv $(BUILD_DIR)/$(ARCH)/bench_2d_app_rvv
+	@echo "[CLEAN] Removing bench bench_2d_rvv..."
+	rm -rf bench_2d_rvv $(BUILD_DIR)/$(ARCH)/bench_2d_rvv
 	@echo "[DONE] Bench rvv cleaned."
 	@echo "-------------------------------------------------------"
 
@@ -539,12 +551,12 @@ deploy_bench_std: deploy_files clean_bench_std
 	@echo "[DONE] $(TARGET_BENCH_STD) deployed."
 
 deploy_bench_rvv: deploy_files clean_bench_rvv
-	@$(MAKE) --no-print-directory ARCH=$(ARCH) TARGET_BENCH=bench_2d_app_rvv USE_PCL_RVV10=1 $(BUILD_DIR)/$(ARCH)/bench_2d_app_rvv
-	@echo "[DEPLOY] Stripping and Syncing bench_2d_app_rvv..."
-	@riscv64-unknown-linux-gnu-strip -s ./$(BUILD_DIR)/$(ARCH)/bench_2d_app_rvv -o ./bench_2d_app_rvv_stripped
-	@rsync -avzP ./bench_2d_app_rvv_stripped $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_DIR)/bench_2d_app_rvv
-	@rm -f ./bench_2d_app_rvv_stripped
-	@echo "[DONE] bench_2d_app_rvv deployed."
+	@$(MAKE) --no-print-directory ARCH=$(ARCH) TARGET_BENCH=bench_2d_rvv USE_PCL_RVV10=1 $(BUILD_DIR)/$(ARCH)/bench_2d_rvv
+	@echo "[DEPLOY] Stripping and Syncing bench_2d_rvv..."
+	@riscv64-unknown-linux-gnu-strip -s ./$(BUILD_DIR)/$(ARCH)/bench_2d_rvv -o ./bench_2d_rvv_stripped
+	@rsync -avzP ./bench_2d_rvv_stripped $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_DIR)/bench_2d_rvv
+	@rm -f ./bench_2d_rvv_stripped
+	@echo "[DONE] bench_2d_rvv deployed."
 
 deploy_test: $(TARGET_TEST_BIN) deploy_files
 	@echo "[DEPLOY] Stripping and Syncing $(TARGET_TEST)..."

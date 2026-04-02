@@ -1,0 +1,56 @@
+make[1]: 进入目录“/home/zoomin/codes/RISCV/workspace/pcl/test-rvv/2d”
+[CLEAN] Removing bench bench_2d_std...
+rm -rf bench_2d_std build/riscv/bench_2d_std
+[DONE] Bench cleaned.
+-------------------------------------------------------
+mkdir -p log/vec_missed_log
+[BUILD] Compiling bench_2d_std (riscv) USE_PCL_RVV10=0...
+riscv64-unknown-linux-gnu-g++ -std=c++17 -O3 -g -mabi=lp64d -fopt-info-vec-missed=log/vec_missed_log/vec_missed_2026-04-02_14-48-12.log -DPCL_SILENCE_MALLOC_WARNING=1 -DEIGEN_RISCV64_USE_RVV10 -DEIGEN_RISCV64_DEFAULT_LMUL=2 -march=rv64gcv_zvl256b -mrvv-vector-bits=zvl -DPCL_NO_PRECOMPILE -I/home/zoomin/codes/RISCV/workspace/pcl/2d/include -I/home/zoomin/codes/RISCV/workspace/pcl/common/include -I/home/zoomin/codes/RISCV/workspace/pcl/test/include -I/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/include/pcl-1.15 -I/home/zoomin/codes/RISCV/workspace/riscv/eigen-rvv/include/eigen3 -I/home/zoomin/codes/RISCV/workspace/riscv/boost/include -I/home/zoomin/codes/RISCV/workspace/riscv/flann/include -I/home/zoomin/codes/RISCV/workspace/riscv/lz4/include -I/home/zoomin/codes/RISCV/workspace/riscv/hdf5/include -I/home/zoomin/codes/RISCV/workspace/riscv/gtest/include -I/home/zoomin/codes/RISCV/workspace/riscv/zlib/include -I/home/zoomin/codes/RISCV/workspace/riscv/libpng/include bench_2d.cpp -L/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib -L/home/zoomin/codes/RISCV/workspace/riscv/boost/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/boost/lib -L/home/zoomin/codes/RISCV/workspace/riscv/flann/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/flann/lib -L/home/zoomin/codes/RISCV/workspace/riscv/lz4/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/lz4/lib -L/home/zoomin/codes/RISCV/workspace/riscv/hdf5/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/hdf5/lib -L/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib -L/home/zoomin/codes/RISCV/workspace/riscv/zlib/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/zlib/lib -L/home/zoomin/codes/RISCV/workspace/riscv/libpng/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/libpng/lib -lpcl_filters -lpcl_io -lpcl_common -lgtest -lgtest_main -lpthread -lboost_filesystem -lboost_iostreams -lboost_system -lm -lz -lhdf5 -lpng -llz4 -o build/riscv/bench_2d_std
+[INFO]  Latest vectorization log linked: log/latest_vec_missed.log
+[INFO]  Filtering report for keywords: 'pcl/2d/include/pcl/2d/impl/edge.hpp'
+[INFO]  Clean report generated: log/filtered_report.log
+[ANALYZE] Generating Vectorization Analysis Report...
+Read log file: log/filtered_report.log
+Path simplification filter: 'pcl'
+Using existing directory: log/vec_logs/
+Summary report saved to: log/analyzed_vec_report.log
+Split logs saved to: log/vec_logs/*.log
+[DONE] Analysis report saved to: log/analyzed_vec_report.log
+-------------------------------------------------------
+Check optimization hints:
+  cat log/filtered_report.log
+-------------------------------------------------------
+[RUN] Executing Benchmark on riscv USE_PCL_RVV10=0...
+LD_LIBRARY_PATH=/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib:/home/zoomin/codes/RISCV/workspace/riscv/boost/lib:/home/zoomin/codes/RISCV/workspace/riscv/flann/lib:/home/zoomin/codes/RISCV/workspace/riscv/lz4/lib:/home/zoomin/codes/RISCV/workspace/riscv/hdf5/lib:/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib:/home/zoomin/codes/RISCV/workspace/riscv/zlib/lib:/home/zoomin/codes/RISCV/workspace/riscv/libpng/lib:$LD_LIBRARY_PATH qemu-riscv64 -L /opt/riscv64/sysroot -cpu rv64,v=true,vlen=256,elen=64 ./build/riscv/bench_2d_std
+========================================================
+ PCL 2D Module Benchmark
+ Image Size: 640 x 480
+ Iterations: 20
+========================================================
+Kernel gaussianKernel (3x3, sigma=1.0)  : 2.796 us / iter
+Kernel gaussianKernel (5x5, sigma=1.0)  : 4.151 us / iter
+Kernel gaussianKernel (11x11, sigma=2.0): 13.098 us / iter
+Kernel loGKernel (3x3, sigma=1.0)       : 2.571 us / iter
+Kernel loGKernel (5x5, sigma=1.0)       : 4.370 us / iter
+Kernel loGKernel (11x11, sigma=2.0)     : 13.996 us / iter
+Convolution (5x5 Gaussian)              : 95.769 ms / iter
+Convolution (11x11 Gaussian)            : 7763.848 ms / iter
+Conv+Kernel Gaussian (5x5, sigma=1.0)   : 96.060 ms / iter
+Conv+Kernel Gaussian (11x11, sigma=2.0) : 7738.973 ms / iter
+Conv+Kernel LoG (11x11, sigma=2.0)      : 7724.733 ms / iter
+Edge Sobel (Magnitude)                  : 116.762 ms / iter
+Edge Canny (Full Pipeline)              : 1244.571 ms / iter
+Edge discretizeAngles                   : 7.709 ms / iter
+Morphology Erosion (Gray 3x3)           : 31.049 ms / iter
+Morphology Dilation (Gray 3x3)          : 30.624 ms / iter
+Morphology Opening (Gray 3x3)           : 41.920 ms / iter
+Morphology Closing (Gray 3x3)           : 41.918 ms / iter
+Morphology Erosion (Binary 3x3)         : 9.651 ms / iter
+Morphology Dilation (Binary 3x3)        : 12.744 ms / iter
+Morphology Opening (Binary 3x3)         : 32.172 ms / iter
+Morphology Closing (Binary 3x3)         : 35.354 ms / iter
+Set Operation: Union (A | B)            : 2.354 ms / iter
+Set Operation: Intersection (A & B)     : 2.189 ms / iter
+Set Operation: Subtraction (A - B)      : 2.186 ms / iter
+========================================================
+make[1]: 离开目录“/home/zoomin/codes/RISCV/workspace/pcl/test-rvv/2d”

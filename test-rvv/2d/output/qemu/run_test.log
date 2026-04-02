@@ -2,37 +2,37 @@
 [----------] Global test environment set-up.
 [----------] 2 tests from Convolution
 [ RUN      ] Convolution.borderOptions
-[       OK ] Convolution.borderOptions (61 ms)
+[       OK ] Convolution.borderOptions (62 ms)
 [ RUN      ] Convolution.gaussianSmooth
-[       OK ] Convolution.gaussianSmooth (74 ms)
+[       OK ] Convolution.gaussianSmooth (73 ms)
 [----------] 2 tests from Convolution (139 ms total)
 
 [----------] 4 tests from Edge
 [ RUN      ] Edge.sobel
-[       OK ] Edge.sobel (85 ms)
+[       OK ] Edge.sobel (86 ms)
 [ RUN      ] Edge.prewitt
-[       OK ] Edge.prewitt (84 ms)
+[       OK ] Edge.prewitt (85 ms)
 [ RUN      ] Edge.canny
-[       OK ] Edge.canny (123 ms)
+[       OK ] Edge.canny (125 ms)
 [ RUN      ] Edge.DiscretizeAngles
 [       OK ] Edge.DiscretizeAngles (0 ms)
-[----------] 4 tests from Edge (294 ms total)
+[----------] 4 tests from Edge (298 ms total)
 
 [----------] 6 tests from Morphology
 [ RUN      ] Morphology.erosion
 [       OK ] Morphology.erosion (111 ms)
 [ RUN      ] Morphology.dilation
-[       OK ] Morphology.dilation (108 ms)
+[       OK ] Morphology.dilation (109 ms)
 [ RUN      ] Morphology.opening
-[       OK ] Morphology.opening (130 ms)
+[       OK ] Morphology.opening (133 ms)
 [ RUN      ] Morphology.closing
-[       OK ] Morphology.closing (130 ms)
+[       OK ] Morphology.closing (131 ms)
 [ RUN      ] Morphology.SetOperations
 [       OK ] Morphology.SetOperations (0 ms)
 [ RUN      ] Morphology.StructuringElements
 [       OK ] Morphology.StructuringElements (0 ms)
-[----------] 6 tests from Morphology (481 ms total)
+[----------] 6 tests from Morphology (486 ms total)
 
 [----------] Global test environment tear-down
-[==========] 12 tests from 3 test suites ran. (919 ms total)
+[==========] 12 tests from 3 test suites ran. (928 ms total)
 [  PASSED  ] 12 tests.
