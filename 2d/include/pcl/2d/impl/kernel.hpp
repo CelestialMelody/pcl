@@ -55,7 +55,7 @@ sumReduceRVV(const std::vector<float>& buf, std::size_t n)
   while (j0 < n) {
     std::size_t vl = __riscv_vsetvl_e32m2(n - j0);
     vfloat32m2_t v_buf = __riscv_vle32_v_f32m2(buf.data() + j0, vl);
-    v_acc = __riscv_vfadd_vv_f32m2(v_acc, v_buf, vl);
+    v_acc = __riscv_vfadd_vv_f32m2_tu(v_acc, v_acc, v_buf, vl);
     j0 += vl;
   }
   vfloat32m1_t v_zero = __riscv_vfmv_s_f_f32m1(0.0f, 1);
