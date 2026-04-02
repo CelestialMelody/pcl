@@ -3,7 +3,7 @@
 本目录提供 PCL `2d` 模块相关的 **功能测试**、**基准测试**，并支持：
 
 - **本机 `Makefile`**：交叉编译（RISC-V）后在 **QEMU** 运行；或在 x86 主机上原生运行（`ARCH=x86`）。
-- **板卡 `Makefile.board`**：在板卡上直接运行已部署的二进制，并保存日志、生成对比表（不负责编译）。
+- **板卡 `board.mk`**：在板卡上直接运行已部署的二进制，并保存日志、生成对比表（不负责编译）。
 
 板卡运行前建议先在 `test-rvv/` 执行顶层库部署：见 `../README.zh.md` 中的 `make deploy_lib`。
 
@@ -92,9 +92,9 @@ make ARCH=x86 run_bench
 
 ---
 
-## 2. 板卡：`Makefile.board`
+## 2. 板卡：`board.mk`
 
-`Makefile.board` 约定的部署路径与 `Makefile` 中的 `REMOTE_*` 一致，核心变量：
+`board.mk` 约定的部署路径与 `Makefile` 中的 `REMOTE_*` 一致，核心变量：
 
 - **`REMOTE_DIR`**：板卡上二进制所在目录（默认 `/root/pcl-test/2d`）
 - **`REMOTE_LIB_DIR`**：板卡上动态库目录（默认 `/root/pcl-test/lib`，建议与 `test-rvv/Makefile` 的 `REMOTE_LIB_DIR` 一致）
@@ -103,12 +103,12 @@ make ARCH=x86 run_bench
 
 ### 2.1 板卡端常用命令
 
-在板卡上（位于含 `Makefile.board` 内容的 `Makefile`）：
+在板卡上（含 `board.mk` 内容的 `Makefile`）：
 
 ```bash
-# 如果是 Makefile: make run_test 
-make -f Makefile.board run_test
-make -f Makefile.board run_bench_compare
+# 如果是 Makefile: make run_test
+make -f board.mk run_test
+make -f board.mk run_bench_compare
 ```
 
 - **`run_bench_std` / `run_bench_rvv`**：分别 `tee` 到 `$(REMOTE_DIR)/output/run_bench_{std,rvv}.log`
@@ -134,6 +134,6 @@ make deploy_bench_rvv
 
 # 板卡
 cd /root/pcl-test/2d
-make -f Makefile.board run_bench_compare
+make -f board.mk run_bench_compare
 ```
 

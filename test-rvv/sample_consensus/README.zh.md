@@ -5,13 +5,13 @@
 **依赖环境**
 
 - **本机**：RISC-V 交叉工具链（`riscv64-unknown-linux-gnu-g++` 等）、QEMU user 模式（`qemu-riscv64`），以及与本 Makefile 中 `WORKSPACE`、`RISCV_DEPS` 一致的路径布局（Boost、Eigen-RVV、FLANN、已安装的 PCL 等）。
-- **板卡**：与交叉编译产物 ABI 匹配的动态库（见下文 `Makefile.board`）。
+- **板卡**：与交叉编译产物 ABI 匹配的动态库（见下文 `board.mk`）。
 
-本目录下 **`Makefile` 供开发机使用**：交叉编译后在 **QEMU** 中执行；**`Makefile.board` 供板卡本机使用**：在已部署二进制与 `.so` 的前提下直接运行，**不在板卡上编译**。
+本目录下 **`Makefile` 供开发机使用**：交叉编译后在 **QEMU** 中执行；**`board.mk` 供板卡本机使用**：在已部署二进制与 `.so` 的前提下直接运行，**不在板卡上编译**。
 
 **板卡动态库**
 
-先在仓库 **`test-rvv/`** 目录执行 **`make deploy_lib`**（见 **[test-rvv/README.md](../README.md)**），将精简后的 `.so` 同步到远端（默认 `~/pcl-test/lib`）。随后在板卡上把 **`Makefile.board`** 中的 **`REMOTE_LIBS_DIR`** 设为与该远端目录一致，再运行测试或基准。
+先在仓库 **`test-rvv/`** 目录执行 **`make deploy_lib`**（见 **[test-rvv/README.md](../README.md)**），将精简后的 `.so` 同步到远端（默认 `~/pcl-test/lib`）。随后在板卡上把 **`board.mk`** 中的 **`REMOTE_LIBS_DIR`** 设为与该远端目录一致，再运行测试或基准。
 
 ---
 
@@ -48,11 +48,11 @@
 
 ---
 
-### 1.2 板卡：`Makefile.board`
+### 1.2 板卡：`board.mk`
 
-将对应目录中的 `Makefile.board` 的内容拷到板卡相应位置的 `Makefile` 文件中使用。脚本只做两件事：设置 `LD_LIBRARY_PATH` 指向板卡上存放依赖 `.so` 的目录，再执行已部署的可执行文件。
+将对应目录中的 `board.mk` 的内容拷到板卡相应位置的 `Makefile` 文件中使用。脚本只做两件事：设置 `LD_LIBRARY_PATH` 指向板卡上存放依赖 `.so` 的目录，再执行已部署的可执行文件。
 
-**`plane_models/Makefile.board`**
+**`plane_models/board.mk`**
 
 - `REMOTE_TEST` / `REMOTE_BENCH`：可执行文件名（默认 `rvv_sac_plane_test`、`bench_sac_normal_plane`）。
 - `REMOTE_PCD_FILE`：传给程序的 PCD 绝对路径（默认示例为 `/root/pcl-test/...`）。
@@ -60,10 +60,10 @@
 
 若在本机使用 `deploy_files`，PCD 会同步到 **`~/pcl-test/sample_consensus/plane_models/pcd/`**（以 Makefile 中 `REMOTE_DIR` 为准）；请把 **`REMOTE_PCD_FILE`** 改成与真实部署路径一致（含是否放在 `pcd/` 子目录）。
 
-**`quadric_models/Makefile.board`**
+**`quadric_models/board.mk`**
 
 - `REMOTE_TEST`：默认可执行文件 `rvv_sac_quadric_test`。
-- `REMOTE_LIBS_DIR`：示例为 `~/pcl-test/libs`；与 `plane_models` 共用一套依赖库时应与 **`deploy_lib`** 目标目录及 **`plane_models/Makefile.board`** 保持一致。
+- `REMOTE_LIBS_DIR`：示例为 `~/pcl-test/libs`；与 `plane_models` 共用一套依赖库时应与 **`deploy_lib`** 目标目录及 **`plane_models/board.mk`** 保持一致。
 
 ---
 
