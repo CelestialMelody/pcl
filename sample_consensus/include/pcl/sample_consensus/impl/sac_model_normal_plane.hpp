@@ -145,6 +145,14 @@ pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::selectWithinDistanceStand
 }
 
 #if defined (__RVV10__)
+/** \brief RVV implementation of \c selectWithinDistance for the normal-plane model (gather, mask, compress).
+ *
+ * \note Precision: the weighted distance is computed in \c float (\c vfloat32m2_t) end-to-end; the scalar path
+ *       (\ref selectWithinDistanceStandard) uses \c double intermediates with \c getAngle3D. The threshold is
+ *       compared after casting to \c float. Euclidean and angular terms use \c distRVV_f32m2 and
+ *       \c pcl::getAcuteAngle3DRVV_f32m2 (approximate \c acos); stored distances are widened to \c double.
+ *       Results may differ from the scalar implementation near thresholds or for ill-conditioned geometry.
+ */
 template <typename PointT, typename PointNT> std::size_t
 pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::selectWithinDistanceRVV (
       const Eigen::VectorXf &model_coefficients, const double threshold, Indices &inliers)
@@ -616,6 +624,13 @@ pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::getDistancesToModelStanda
 
 //////////////////////////////////////////////////////////////////////////
 #if defined (__RVV10__)
+/** \brief RVV implementation of \c getDistancesToModel: one distance per index in \c indices_, dense write-back.
+ *
+ * \note Precision: same pipeline as \ref selectWithinDistanceRVV — all distance arithmetic in \c float
+ *       (\c vfloat32m2_t), then \c vfwcvt to \c double for \c std::vector<double>. The scalar path
+ *       (\ref getDistancesToModelStandard) uses \c double for dot products and \c getAngle3D. Angular
+ *       and plane terms therefore may not match bit-for-bit.
+ */
 template <typename PointT, typename PointNT> void
 pcl::SampleConsensusModelNormalPlane<PointT, PointNT>::getDistancesToModelRVV (
       const Eigen::VectorXf &model_coefficients, std::vector<double> &distances) const
