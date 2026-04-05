@@ -158,7 +158,7 @@ namespace pcl
    * \ingroup common
    */
   inline vfloat32m2_t
-  acos_RVV(const vfloat32m2_t& x, const std::size_t vl);
+  acos_RVV_f32m2(const vfloat32m2_t& x, const std::size_t vl);
 
   /**
    * \brief Compute acute angles between two sets of normalized 3D vectors using RVV.
@@ -172,9 +172,48 @@ namespace pcl
    * \ingroup common
    */
   inline vfloat32m2_t
-  getAcuteAngle3DRVV(const vfloat32m2_t& x1, const vfloat32m2_t& y1, const vfloat32m2_t& z1,
+  getAcuteAngle3DRVV_f32m2(const vfloat32m2_t& x1, const vfloat32m2_t& y1, const vfloat32m2_t& z1,
                      const vfloat32m2_t& x2, const vfloat32m2_t& y2, const vfloat32m2_t& z2, const std::size_t vl);
-#endif // ifdef __RISCV_RVV__
+
+  /**
+   * \brief Compute atan2(y, x) for multiple values at once using RISC-V Vector instructions.
+   *
+   * Polynomial approximation (Hastings-style, ~0.01 deg max error). Returns angle in [-pi, pi].
+   * \param y numerator (y coordinates)
+   * \param x denominator (x coordinates)
+   * \param vl vector length
+   * \return vector of atan2(y, x) in radians
+   * \ingroup common
+   *
+   * Implementation reference: https://mazzo.li/posts/vectorized-atan2.html
+   */
+  inline vfloat32m2_t
+  atan2_RVV_f32m2(const vfloat32m2_t& y, const vfloat32m2_t& x, const std::size_t vl);
+
+  /**
+   * \brief Compute expf(x) for multiple float values using RISC-V Vector (RVV) instructions.
+   *
+   * Uses "reduction → approximation → reconstruction": reduce x = n*ln2 + r with r in
+   * [-ln2/2, ln2/2], approximate exp(r) by a Remez polynomial, then exp(x) = 2^n * exp(r).
+   * Max relative error vs std::expf is about 1.5e-6. Inputs are clamped to [-88, 88].
+   * \param x vector of float inputs
+   * \param vl vector length (from vsetvl)
+   * \return vector of exp(x)
+   * \ingroup common
+   * \see doc-rvv/expf_RVV.zh.md
+   */
+  inline vfloat32m2_t
+  expf_RVV_f32m2(const vfloat32m2_t& x, const std::size_t vl);
+
+  /**
+   * \brief Compute exp(x) for multiple values at once using RISC-V Vector instructions.
+   *
+   * NOTE: exp_RVV_f64m1 (double) has been removed due to accuracy issues.
+   * See test-rvv/2d/exp.cpp for the saved implementation. Use expf_RVV_f32m2 for float.
+   */
+  // inline vfloat64m1_t
+  // exp_RVV_f64m1(const vfloat64m1_t& x, const std::size_t vl);
+#endif // ifdef __RVV10__
 
   /** \brief Compute both the mean and the standard deviation of an array of values
     * \param values the array of values
