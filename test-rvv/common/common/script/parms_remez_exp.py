@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""
+Remez (second algorithm) for minimax polynomial approximation of exp(r) on [0, ln(2)].
+Used for vectorized expf: reduce x = n*ln(2) + r, approximate exp(r) by P(r), then exp(x) = 2^n * P(r).
+
+Output: C/C++ constants for Horner form P(r) = c0 + r*(c1 + r*(c2 + ...)).
+
+Usage:
+  # 推荐：使用 uv 创建虚拟环境并安装 numpy 后运行
+  uv venv .venv && uv pip install numpy
+  .venv/bin/python remez_exp.py [--degree 7] [--iterations 50]
+"""
+
+import argparse
+import math
+
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
+LN2 = math.log(2)
+
+
+def remez_exp_r_numpy(degree, a=0.0, b=LN2, max_iter=50, n_fine=3000):
+    """
+    Remez exchange with numpy: find polynomial P of given degree approximating exp(x) on [a,b].
+    Returns (coeffs, max_err). coeffs[0] + coeffs[1]*x + ... + coeffs[degree]*x^degree.
+    """
+    n = degree
+    n_ref = n + 2  # n+2 points for equioscillation
+
+    # Initial reference: Chebyshev nodes in (a, b)
+    k = np.arange(1, n_ref + 1)
+    x_cheb = np.cos((2 * k - 1) * np.pi / (2 * n_ref))
+    ref = 0.5 * (a + b) + 0.5 * (b - a) * x_cheb
+    ref = np.sort(ref)
+
+    for _ in range(max_iter):
+        # Solve: at ref[i], exp(ref[i]) - P(ref[i]) = (-1)^i * E
+        # => P(ref[i]) + (-1)^i * E = exp(ref[i])
+        # Vandermonde V_ij = ref[i]^j, column for E: (-1)^i
+        V = np.vander(ref, n + 1, increasing=True)
+        col_E = np.array([(-1) ** i for i in range(n_ref)], dtype=float)
+        A = np.column_stack([V, col_E])
+        rhs = np.exp(ref)
+        try:
+            sol = np.linalg.solve(A, rhs)
+        except np.linalg.LinAlgError:
+            break
+        coeffs = sol[: n + 1]
+        E = sol[-1]
+
+        # Error e(x) = exp(x) - P(x) on fine grid
+        x_fine = np.linspace(a, b, n_fine)
+        P_fine = np.polyval(coeffs[::-1], x_fine)
+        err_fine = np.exp(x_fine) - P_fine
+        max_err_abs = np.max(np.abs(err_fine))
+
+        # Find all local extrema of e(x)
+        diff_err = np.diff(err_fine)
+        sign_changes = np.diff(np.sign(diff_err)) != 0
+        extrema_idx = np.where(sign_changes)[0] + 1  # indices of local extrema
+        if len(extrema_idx) < n_ref:
+            extrema_idx = np.array([np.argmax(np.abs(err_fine))])
+
+        x_ext = x_fine[extrema_idx]
+        err_ext = err_fine[extrema_idx]
+
+        # Include boundaries
+        x_cand = np.concatenate([[a], x_ext, [b]])
+        err_cand = np.exp(x_cand) - np.polyval(coeffs[::-1], x_cand)
+        # Sort by x
+        sort_idx = np.argsort(x_cand)
+        x_cand = x_cand[sort_idx]
+        err_cand = err_cand[sort_idx]
+
+        # Select n_ref points with alternating sign (equioscillation)
+        # Choose the n_ref points that best approximate alternation
+        ref_new = []
+        signs_needed = [(-1) ** i for i in range(n_ref)]
+        # Start from left: pick one point per "sign bucket" so we get alternation
+        j = 0
+        for i in range(n_ref):
+            target_sign = signs_needed[i]
+            while j < len(x_cand) and np.sign(err_cand[j]) != target_sign:
+                j += 1
+            if j < len(x_cand):
+                ref_new.append(x_cand[j])
+                j += 1
+        if len(ref_new) < n_ref:
+            ref_new = np.linspace(a, b, n_ref).tolist()
+        ref_new = np.sort(np.unique(ref_new))
+        if len(ref_new) < n_ref:
+            ref = np.linspace(a, b, n_ref)
+        else:
+            # Take n_ref points: prefer spread + alternation
+            idx_sel = np.linspace(0, len(ref_new) - 1, n_ref, dtype=int)
+            ref = ref_new[idx_sel]
+
+    return coeffs.tolist(), float(max_err_abs)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Remez coefficients for exp(r) on [0, ln(2)]")
+    ap.add_argument("--degree", type=int, default=7, help="Polynomial degree")
+    ap.add_argument("--iterations", type=int, default=50, help="Max Remez iterations")
+    ap.add_argument("--output-header", type=str, default="", help="Write C++ header path")
+    args = ap.parse_args()
+
+    a, b = 0.0, float(LN2)
+    if not HAS_NUMPY:
+        raise SystemExit("numpy is required. Please install numpy in .venv.")
+    coeffs, max_err = remez_exp_r_numpy(args.degree, a=a, b=b, max_iter=args.iterations)
+
+    print("Remez polynomial for exp(r) on [0, ln(2)]")
+    print("P(r) = c0 + c1*r + c2*r^2 + ... (degree = {})".format(args.degree))
+    print("Max absolute error on [0, ln(2)]: {:.10e}".format(max_err))
+    print("Horner form: c0 + r*(c1 + r*(c2 + r*(...)))")
+    print("")
+    for i, c in enumerate(coeffs):
+        print("expf_remez_c{} = {:.10e}f;  // r^{}".format(i, c, i))
+    print("")
+    print("Horner evaluation (highest to lowest):")
+    print("  float poly = expf_remez_c{};".format(len(coeffs) - 1))
+    for i in range(len(coeffs) - 2, -1, -1):
+        print("  poly = expf_remez_c{} + r * poly;".format(i))
+    print("  exp_r = poly;")
+
+    if args.output_header:
+        with open(args.output_header, "w") as f:
+            f.write("/* Generated by remez_exp.py - do not edit */\n")
+            f.write("#ifndef PCL_EXPF_REMEZ_COEFFS_H\n#define PCL_EXPF_REMEZ_COEFFS_H\n\n")
+            f.write("/* exp(r) on [0, ln(2)], degree {}, max abs err ~ {:.6e} */\n\n".format(args.degree, max_err))
+            for i, c in enumerate(coeffs):
+                f.write("static const float expf_remez_c{} = {:.10e}f;\n".format(i, c))
+            f.write("\n#endif\n")
+        print("")
+        print("Wrote {}".format(args.output_header))
+
+    return 0
+
+
+if __name__ == "__main__":
+    exit(main())

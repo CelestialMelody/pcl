@@ -1,0 +1,18 @@
+[BOARD] Benchmark RVV -> /root/pcl-test/common/common/output/run_bench_rvv.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/common/bench_common_rvv 2>&1 | tee /root/pcl-test/common/common/output/run_bench_rvv.log
+============================================================
+ PCL common.hpp Benchmark
+ Cloud size: 200000  Vector size: 500000
+ Iterations: 20
+============================================================
+getMeanStd (vector<float>)                : 0.3241 ms/iter
+getPointsInBox (dense cloud)              : 1.2424 ms/iter
+getMaxDistance (cloud, pivot)             : 1.0643 ms/iter
+getMaxDistance (cloud, indices, pivot)    : 1.2937 ms/iter
+getMinMax3D (cloud, Eigen)                : 0.7605 ms/iter
+getMinMax3D (cloud, indices, Eigen)       : 1.0292 ms/iter
+getMinMax3D (cloud, PointT)               : 0.7656 ms/iter
+getAngle3D (x1000)                        : 0.0073 ms/iter
+calculatePolygonArea (256 pts) x500       : 0.6479 ms/iter
+============================================================

@@ -1,0 +1,17 @@
+[BOARD] expf_test -> /root/pcl-test/common/common/output/run_expf_test.log
+LD_LIBRARY_PATH=/root/pcl-test/libs:$LD_LIBRARY_PATH \
+/root/pcl-test/common/common/expf_test 2>&1 | tee /root/pcl-test/common/common/output/run_expf_test.log
+=== Error metric notes ===
+    - max relative error: max_i (|approx_i - ref_i| / |ref_i|), ref_i != 0
+
+=== expf approximation vs std::expf (n = 10000) ===
+  Scalar Remez (aligned with common.hpp constants):
+    max relative error:  1.517213e-06
+  RVV (pcl::expf_RVV_f32m2 from common.hpp):
+    max relative error:  1.517213e-06
+  RVV vs scalar Remez max diff: 0.000000e+00
+
+=== Performance (n = 10000, 100 iters) ===
+  std::expf:       42.754 ms
+  Scalar Remez:   127.095 ms  (speedup: 0.34x vs std)
+  RVV common.hpp:   4.634 ms  (speedup: 9.23x vs std, 27.43x vs scalar)

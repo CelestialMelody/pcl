@@ -1,0 +1,20 @@
+[BOARD] Benchmark Std -> /root/pcl-test/common/common/output/run_bench_std.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/common/bench_common_std 2>&1 | tee /root/pcl-test/common/common/output/run_bench_std.log
+============================================================
+ PCL common.hpp Benchmark
+ Cloud size: 200000  Vector size: 500000
+ Iterations: 20
+============================================================
+getMeanStd (vector<float>)                : 2.5670 ms/iter
+getPointsInBox (dense cloud)              : 4.7103 ms/iter
+getMaxDistance (cloud, pivot)             : 5.5943 ms/iter
+getMaxDistance (cloud, indices, pivot)    : 6.2503 ms/iter
+getMinMax3D (cloud, Eigen)                : 8.5031 ms/iter
+getMinMax3D (cloud, indices, Eigen)       : 9.0152 ms/iter
+getMinMax3D (cloud, PointT)               : 8.5023 ms/iter
+getAngle3D (x1000)                        : 0.1791 ms/iter
+calculatePolygonArea (256 pts) x500       : 1.8608 ms/iter
+============================================================
+ Done. Use run_bench under ARCH=riscv or ARCH=x86 for comparison.
+============================================================

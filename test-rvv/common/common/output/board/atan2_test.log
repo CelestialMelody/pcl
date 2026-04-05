@@ -1,0 +1,24 @@
+[BOARD] atan2_test -> /root/pcl-test/common/common/output/run_atan2_test.log
+LD_LIBRARY_PATH=/root/pcl-test/libs:$LD_LIBRARY_PATH \
+/root/pcl-test/common/common/atan2_test 2>&1 | tee /root/pcl-test/common/common/output/run_atan2_test.log
+=== atan2 approximation vs std::atan2 (n = 65536) ===
+  Scalar approximation (same polynomial as RVV):
+    max absolute error:  0.000002 rad  (0.0001 deg)
+    mean absolute error: 0.000001 rad
+  RVV (pcl::atan2_RVV_f32m2):
+    max absolute error:  0.000002 rad  (0.0001 deg)
+    mean absolute error: 0.000001 rad
+  RVV vs scalar approx max diff: 0.000000e+00 (expect ~0)
+
+=== Performance Benchmark (n = 65536, iterations = 100) ===
+  std::atan2:
+    time:       808.429 ms (8.084 ms/iter)
+    throughput: 8.11 M elements/sec
+  Scalar approximation:
+    time:       72.373 ms (0.724 ms/iter)
+    throughput: 90.55 M elements/sec
+    speedup:    11.17x vs std::atan2
+  RVV (pcl::atan2_RVV_f32m2):
+    time:       60.811 ms (0.608 ms/iter)
+    throughput: 107.77 M elements/sec
+    speedup:    13.29x vs std::atan2, 1.19x vs scalar

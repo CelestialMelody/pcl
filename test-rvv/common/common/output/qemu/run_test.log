@@ -1,0 +1,227 @@
+[==========] Running 66 tests from 30 test suites.
+[----------] Global test environment set-up.
+[----------] 14 tests from PCL
+[ RUN      ] PCL.PointXYZRGB
+[       OK ] PCL.PointXYZRGB (0 ms)
+[ RUN      ] PCL.PointXYZRGBNormal
+[       OK ] PCL.PointXYZRGBNormal (0 ms)
+[ RUN      ] PCL.isFinite
+[       OK ] PCL.isFinite (0 ms)
+[ RUN      ] PCL.Common
+[       OK ] PCL.Common (0 ms)
+[ RUN      ] PCL.Eigen
+[       OK ] PCL.Eigen (1 ms)
+[ RUN      ] PCL.PointTypes
+[       OK ] PCL.PointTypes (0 ms)
+[ RUN      ] PCL.Intersections
+[       OK ] PCL.Intersections (0 ms)
+[ RUN      ] PCL.CopyIfFieldExists
+[       OK ] PCL.CopyIfFieldExists (0 ms)
+[ RUN      ] PCL.SetIfFieldExists
+[       OK ] PCL.SetIfFieldExists (0 ms)
+[ RUN      ] PCL.IsSamePointType
+[       OK ] PCL.IsSamePointType (0 ms)
+[ RUN      ] PCL.HasField
+[       OK ] PCL.HasField (0 ms)
+[ RUN      ] PCL.GetMinMax3D
+[       OK ] PCL.GetMinMax3D (1 ms)
+[ RUN      ] PCL.GetMaxDistance
+[       OK ] PCL.GetMaxDistance (0 ms)
+[ RUN      ] PCL.computeMedian
+[       OK ] PCL.computeMedian (0 ms)
+[----------] 14 tests from PCL (8 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/0, where TypeParam = pcl::PointXYZ
+[ RUN      ] XYZPointTypesTest/0.GetVectorXfMap
+[       OK ] XYZPointTypesTest/0.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/0.GetArrayXfMap
+[       OK ] XYZPointTypesTest/0.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/0 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/1, where TypeParam = pcl::PointXYZI
+[ RUN      ] XYZPointTypesTest/1.GetVectorXfMap
+[       OK ] XYZPointTypesTest/1.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/1.GetArrayXfMap
+[       OK ] XYZPointTypesTest/1.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/1 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/2, where TypeParam = pcl::PointXYZL
+[ RUN      ] XYZPointTypesTest/2.GetVectorXfMap
+[       OK ] XYZPointTypesTest/2.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/2.GetArrayXfMap
+[       OK ] XYZPointTypesTest/2.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/2 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/3, where TypeParam = pcl::PointXYZRGBA
+[ RUN      ] XYZPointTypesTest/3.GetVectorXfMap
+[       OK ] XYZPointTypesTest/3.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/3.GetArrayXfMap
+[       OK ] XYZPointTypesTest/3.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/3 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/4, where TypeParam = pcl::PointXYZRGB
+[ RUN      ] XYZPointTypesTest/4.GetVectorXfMap
+[       OK ] XYZPointTypesTest/4.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/4.GetArrayXfMap
+[       OK ] XYZPointTypesTest/4.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/4 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/5, where TypeParam = pcl::PointXYZRGBL
+[ RUN      ] XYZPointTypesTest/5.GetVectorXfMap
+[       OK ] XYZPointTypesTest/5.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/5.GetArrayXfMap
+[       OK ] XYZPointTypesTest/5.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/5 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/6, where TypeParam = pcl::PointXYZLAB
+[ RUN      ] XYZPointTypesTest/6.GetVectorXfMap
+[       OK ] XYZPointTypesTest/6.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/6.GetArrayXfMap
+[       OK ] XYZPointTypesTest/6.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/6 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/7, where TypeParam = pcl::PointXYZHSV
+[ RUN      ] XYZPointTypesTest/7.GetVectorXfMap
+[       OK ] XYZPointTypesTest/7.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/7.GetArrayXfMap
+[       OK ] XYZPointTypesTest/7.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/7 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/8, where TypeParam = pcl::InterestPoint
+[ RUN      ] XYZPointTypesTest/8.GetVectorXfMap
+[       OK ] XYZPointTypesTest/8.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/8.GetArrayXfMap
+[       OK ] XYZPointTypesTest/8.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/8 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/9, where TypeParam = pcl::PointNormal
+[ RUN      ] XYZPointTypesTest/9.GetVectorXfMap
+[       OK ] XYZPointTypesTest/9.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/9.GetArrayXfMap
+[       OK ] XYZPointTypesTest/9.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/9 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/10, where TypeParam = pcl::PointXYZRGBNormal
+[ RUN      ] XYZPointTypesTest/10.GetVectorXfMap
+[       OK ] XYZPointTypesTest/10.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/10.GetArrayXfMap
+[       OK ] XYZPointTypesTest/10.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/10 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/11, where TypeParam = pcl::PointXYZINormal
+[ RUN      ] XYZPointTypesTest/11.GetVectorXfMap
+[       OK ] XYZPointTypesTest/11.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/11.GetArrayXfMap
+[       OK ] XYZPointTypesTest/11.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/11 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/12, where TypeParam = pcl::PointXYZLNormal
+[ RUN      ] XYZPointTypesTest/12.GetVectorXfMap
+[       OK ] XYZPointTypesTest/12.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/12.GetArrayXfMap
+[       OK ] XYZPointTypesTest/12.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/12 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/13, where TypeParam = pcl::PointWithRange
+[ RUN      ] XYZPointTypesTest/13.GetVectorXfMap
+[       OK ] XYZPointTypesTest/13.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/13.GetArrayXfMap
+[       OK ] XYZPointTypesTest/13.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/13 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/14, where TypeParam = pcl::PointWithViewpoint
+[ RUN      ] XYZPointTypesTest/14.GetVectorXfMap
+[       OK ] XYZPointTypesTest/14.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/14.GetArrayXfMap
+[       OK ] XYZPointTypesTest/14.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/14 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/15, where TypeParam = pcl::PointWithScale
+[ RUN      ] XYZPointTypesTest/15.GetVectorXfMap
+[       OK ] XYZPointTypesTest/15.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/15.GetArrayXfMap
+[       OK ] XYZPointTypesTest/15.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/15 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/16, where TypeParam = pcl::PointSurfel
+[ RUN      ] XYZPointTypesTest/16.GetVectorXfMap
+[       OK ] XYZPointTypesTest/16.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/16.GetArrayXfMap
+[       OK ] XYZPointTypesTest/16.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/16 (0 ms total)
+
+[----------] 2 tests from XYZPointTypesTest/17, where TypeParam = pcl::PointDEM
+[ RUN      ] XYZPointTypesTest/17.GetVectorXfMap
+[       OK ] XYZPointTypesTest/17.GetVectorXfMap (0 ms)
+[ RUN      ] XYZPointTypesTest/17.GetArrayXfMap
+[       OK ] XYZPointTypesTest/17.GetArrayXfMap (0 ms)
+[----------] 2 tests from XYZPointTypesTest/17 (0 ms total)
+
+[----------] 1 test from NormalPointTypesTest/0, where TypeParam = pcl::Normal
+[ RUN      ] NormalPointTypesTest/0.GetNormalVectorXfMap
+[       OK ] NormalPointTypesTest/0.GetNormalVectorXfMap (0 ms)
+[----------] 1 test from NormalPointTypesTest/0 (0 ms total)
+
+[----------] 1 test from NormalPointTypesTest/1, where TypeParam = pcl::PointNormal
+[ RUN      ] NormalPointTypesTest/1.GetNormalVectorXfMap
+[       OK ] NormalPointTypesTest/1.GetNormalVectorXfMap (0 ms)
+[----------] 1 test from NormalPointTypesTest/1 (0 ms total)
+
+[----------] 1 test from NormalPointTypesTest/2, where TypeParam = pcl::PointXYZRGBNormal
+[ RUN      ] NormalPointTypesTest/2.GetNormalVectorXfMap
+[       OK ] NormalPointTypesTest/2.GetNormalVectorXfMap (0 ms)
+[----------] 1 test from NormalPointTypesTest/2 (0 ms total)
+
+[----------] 1 test from NormalPointTypesTest/3, where TypeParam = pcl::PointXYZINormal
+[ RUN      ] NormalPointTypesTest/3.GetNormalVectorXfMap
+[       OK ] NormalPointTypesTest/3.GetNormalVectorXfMap (0 ms)
+[----------] 1 test from NormalPointTypesTest/3 (0 ms total)
+
+[----------] 1 test from NormalPointTypesTest/4, where TypeParam = pcl::PointXYZLNormal
+[ RUN      ] NormalPointTypesTest/4.GetNormalVectorXfMap
+[       OK ] NormalPointTypesTest/4.GetNormalVectorXfMap (0 ms)
+[----------] 1 test from NormalPointTypesTest/4 (0 ms total)
+
+[----------] 1 test from NormalPointTypesTest/5, where TypeParam = pcl::PointSurfel
+[ RUN      ] NormalPointTypesTest/5.GetNormalVectorXfMap
+[       OK ] NormalPointTypesTest/5.GetNormalVectorXfMap (0 ms)
+[----------] 1 test from NormalPointTypesTest/5 (0 ms total)
+
+[----------] 2 tests from RGBPointTypesTest/0, where TypeParam = pcl::PointXYZRGBA
+[ RUN      ] RGBPointTypesTest/0.GetRGBVectorXi
+[       OK ] RGBPointTypesTest/0.GetRGBVectorXi (0 ms)
+[ RUN      ] RGBPointTypesTest/0.GetBGRVectorXcMap
+[       OK ] RGBPointTypesTest/0.GetBGRVectorXcMap (0 ms)
+[----------] 2 tests from RGBPointTypesTest/0 (0 ms total)
+
+[----------] 2 tests from RGBPointTypesTest/1, where TypeParam = pcl::PointXYZRGB
+[ RUN      ] RGBPointTypesTest/1.GetRGBVectorXi
+[       OK ] RGBPointTypesTest/1.GetRGBVectorXi (0 ms)
+[ RUN      ] RGBPointTypesTest/1.GetBGRVectorXcMap
+[       OK ] RGBPointTypesTest/1.GetBGRVectorXcMap (0 ms)
+[----------] 2 tests from RGBPointTypesTest/1 (0 ms total)
+
+[----------] 2 tests from RGBPointTypesTest/2, where TypeParam = pcl::PointXYZRGBL
+[ RUN      ] RGBPointTypesTest/2.GetRGBVectorXi
+[       OK ] RGBPointTypesTest/2.GetRGBVectorXi (0 ms)
+[ RUN      ] RGBPointTypesTest/2.GetBGRVectorXcMap
+[       OK ] RGBPointTypesTest/2.GetBGRVectorXcMap (0 ms)
+[----------] 2 tests from RGBPointTypesTest/2 (0 ms total)
+
+[----------] 2 tests from RGBPointTypesTest/3, where TypeParam = pcl::PointXYZRGBNormal
+[ RUN      ] RGBPointTypesTest/3.GetRGBVectorXi
+[       OK ] RGBPointTypesTest/3.GetRGBVectorXi (0 ms)
+[ RUN      ] RGBPointTypesTest/3.GetBGRVectorXcMap
+[       OK ] RGBPointTypesTest/3.GetBGRVectorXcMap (0 ms)
+[----------] 2 tests from RGBPointTypesTest/3 (0 ms total)
+
+[----------] 2 tests from RGBPointTypesTest/4, where TypeParam = pcl::PointSurfel
+[ RUN      ] RGBPointTypesTest/4.GetRGBVectorXi
+[       OK ] RGBPointTypesTest/4.GetRGBVectorXi (0 ms)
+[ RUN      ] RGBPointTypesTest/4.GetBGRVectorXcMap
+[       OK ] RGBPointTypesTest/4.GetBGRVectorXcMap (0 ms)
+[----------] 2 tests from RGBPointTypesTest/4 (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 66 tests from 30 test suites ran. (15 ms total)
+[  PASSED  ] 66 tests.
