@@ -62,6 +62,23 @@ def print_bar(ch: str, width: int) -> None:
     print(ch * width)
 
 
+def print_context_kv(key: str, value: str, key_width: int = 10) -> None:
+    """
+    打印 [Benchmark Context] 的一条键值项，支持多行 value。
+    例：
+      key="Dataset", value="line1\\nline2"
+    输出：
+      "  Dataset   : line1"
+      "              line2"
+    """
+    prefix = f"  {key:<{key_width}}: "
+    cont = " " * len(prefix)
+    lines = value.splitlines() or [""]
+    print(prefix + lines[0])
+    for s in lines[1:]:
+        print(cont + s)
+
+
 def parse_run_command(text: str) -> tuple[str, str]:
     """从日志中推断 Device / VLEN 描述。"""
     joined = text
@@ -99,6 +116,23 @@ def _collect_rows(lines: list[str]) -> list[tuple[str, float]]:
     return rows
 
 
+def extract_iterations(text: str) -> int | None:
+    """
+    从日志中提取迭代次数。
+
+    兼容：
+      - structured 风格：`Iterations: N`
+      - 常见缩写/变体：Iter / Iters / iteration / iterations / iter(s)
+    """
+    # 允许大小写混用；允许 Iter / Iters / Iteration / Iterations 等。
+    m = re.search(
+        r"^\s*(?:iters?|iter(?:ation)?s?)\s*:\s*(\d+)\s*$",
+        text,
+        re.IGNORECASE | re.MULTILINE,
+    )
+    return int(m.group(1)) if m else None
+
+
 def extract_dataset_line(text: str) -> str | None:
     m = DATASET_LINE_RE.search(text)
     return m.group(1).strip() if m else None
@@ -126,7 +160,7 @@ def resolve_dataset_description(
     ds_rvv = extract_dataset_line(rvv_text)
     if ds_std and ds_rvv and ds_std != ds_rvv:
         print(
-            "[WARN] Std 与 RVV 日志中 Dataset:/Workload: 文案不一致，展示以 Std 为准。",
+            "[WARN] Std 与 RVV 日志中 Dataset/Workload 文案不一致，展示以 Std 为准。",
             file=sys.stderr,
         )
     if ds_std:
@@ -154,7 +188,7 @@ def resolve_dataset_description(
         return f"workloads from log (cloud {c} points, vector {v} elements)"
 
     return (
-        "未解析到 Image Size / Dataset: / Cloud+Vector；"
+        "未解析到 Image Size / Dataset\n"
         "请在 bench 输出中增加一行 `Dataset: ...` 说明数据，或使用 --dataset"
     )
 
@@ -216,7 +250,7 @@ def parse_structured_header_block(text: str) -> dict:
             }
 
     raise ValueError(
-        "未找到结构化块：需要按顺序出现 Image Size、Iterations，且之后有一段计时行。"
+        "未找到结构化块：需要按顺序出现 Image Size、Iterations，且之后有一段计时行"
     )
 
 
@@ -225,10 +259,7 @@ def parse_loose_ms_per_iter(text: str) -> dict:
     宽松解析：全文搜索 Iterations、可选 Image Size、按出现顺序收集计时行。
     不要求结构化标题行。
     """
-    m_it = re.search(r"Iterations:\s*(\d+)", text)
-    if not m_it:
-        raise ValueError("loose 模式需要日志中出现 'Iterations: N'，或用 --iterations 指定。")
-    base_iters = int(m_it.group(1))
+    base_iters = extract_iterations(text)
 
     m_size = re.search(r"Image Size:\s*(\d+)\s*x\s*(\d+)", text)
     image_w = int(m_size.group(1)) if m_size else None
@@ -236,7 +267,7 @@ def parse_loose_ms_per_iter(text: str) -> dict:
 
     rows = _collect_rows(text.splitlines())
     if not rows:
-        raise ValueError("未找到任何 '… : x ms / iter' 或 '… : x us / iter' 行。")
+        raise ValueError("未找到任何 '… : x ms / iter' 或 '… : x us / iter' 行")
 
     title: str | None = None
     for pat in (
@@ -274,13 +305,12 @@ def parse_one_log(text: str, fmt: str, iterations_override: int | None) -> dict:
     if iterations_override is not None:
         d = dict(d)
         d["base_iterations"] = iterations_override
-
     return d
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="对比 Std / RVV 两份 benchmark 日志（ms/iter 行 + Iterations）并打印表格。"
+        description="对比 Std / RVV 两份 benchmark 日志（ms/iter 行 + Iterations）并打印表格"
     )
     ap.add_argument(
         "--std-log",
@@ -334,19 +364,25 @@ def main() -> int:
     std_d = parse_one_log(std_text, args.format, args.iterations)
     rvv_d = parse_one_log(rvv_text, args.format, args.iterations)
 
-    if std_d["base_iterations"] != rvv_d["base_iterations"]:
+    if (
+        std_d.get("base_iterations") is not None
+        and rvv_d.get("base_iterations") is not None
+        and std_d["base_iterations"] != rvv_d["base_iterations"]
+    ):
         print(
-            f"[WARN] Std Iterations={std_d['base_iterations']} 与 RVV Iterations={rvv_d['base_iterations']} 不一致，仍按名称对齐。",
+            f"[WARN] Std Iterations={std_d['base_iterations']} 与 RVV Iterations={rvv_d['base_iterations']} 不一致，仍按名称对齐",
             file=sys.stderr,
         )
     iw, ih = std_d.get("image_w"), std_d.get("image_h")
     if (iw, ih) != (rvv_d.get("image_w"), rvv_d.get("image_h")) and iw is not None and ih is not None:
         print(
-            "[WARN] 两侧 Image Size 不一致，上下文以 Std 为准。",
+            "[WARN] 两侧 Image Size 不一致，上下文以 Std 为准",
             file=sys.stderr,
         )
 
-    base_iters = std_d["base_iterations"]
+    base_iters: int | None = std_d.get("base_iterations")
+    if base_iters is None:
+        base_iters = rvv_d.get("base_iterations")
     rvv_map = dict(rvv_d["rows"])
 
     device, vlen_desc = parse_run_command(std_text + "\n" + rvv_text)
@@ -371,13 +407,21 @@ def main() -> int:
     print(f" {heading}")
     print_bar(BAR_CHAR, total_width)
     print("[Benchmark Context]")
-    print(f"  Device     : {device}")
-    print(f"  VLEN       : {vlen_desc}")
-    print(f"  Dataset    : {ds}")
+    print_context_kv("Device", device)
+    print_context_kv("VLEN", vlen_desc)
+    print_context_kv("Dataset", ds)
 
-    print(f"  Iterations : {base_iters} （每行 Total = Avg × {base_iters}）")
-    print(f"  Std log    : {args.std_log}")
-    print(f"  RVV log    : {args.rvv_log}")
+    if base_iters is None:
+        print_context_kv(
+            "Iterations",
+            "未解析到 Iter/Iterations\n"
+            "Total Time 不计算（n/a）\n"
+            "建议在 bench 输出中增加 Iterations: N/iter: N，或用 --iterations 覆盖",
+        )
+    else:
+        print_context_kv("Iterations", f"{base_iters} （每行 Total = Avg × {base_iters}）")
+    print_context_kv("Std log", str(args.std_log))
+    print_context_kv("RVV log", str(args.rvv_log))
     print()
 
     print_bar(SEP_CHAR, total_width)
@@ -403,17 +447,17 @@ def main() -> int:
     print(sep)
 
     for name, std_avg in std_d["rows"]:
-        std_tot = std_avg * base_iters
+        std_tot = (std_avg * base_iters) if base_iters is not None else None
         rvv_avg = rvv_map.get(name)
         if rvv_avg is None:
             print(f"# 跳过（RVV 日志无此项）: {name}", file=sys.stderr)
             continue
-        rvv_tot = rvv_avg * base_iters
-        speedup_rvv = (std_tot / rvv_tot) if rvv_tot > 0 else 0.0
+        rvv_tot = (rvv_avg * base_iters) if base_iters is not None else None
+        speedup_rvv = (std_avg / rvv_avg) if rvv_avg > 0 else 0.0
 
-        def row(item: str, impl: str, avg: float, tot: float, sp: float) -> None:
+        def row(item: str, impl: str, avg: float, tot: float | None, sp: float) -> None:
             avg_s = f"{avg:.4f} ms"
-            tot_s = f"{tot:.4f} ms"
+            tot_s = f"{tot:.4f} ms" if tot is not None else "n/a"
             spd_s = f"[ {sp:6.2f}x ]"
             print(
                 f"{item:<{w_item}} | "
