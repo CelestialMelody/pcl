@@ -1,0 +1,100 @@
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.59481 ms/iter
+  Mode B (vssseg4e32): 6.825 ms/iter
+  Speedup (A/B): 0.966273x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   7.03539 ms/iter
+  Mode B (vssseg4e32): 7.14762 ms/iter
+  Speedup (A/B): 0.984299x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.91119 ms/iter
+  Mode B (vssseg4e32): 7.05574 ms/iter
+  Speedup (A/B): 0.979513x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.89621 ms/iter
+  Mode B (vssseg4e32): 6.94469 ms/iter
+  Speedup (A/B): 0.993019x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.9762 ms/iter
+  Mode B (vssseg4e32): 6.86917 ms/iter
+  Speedup (A/B): 1.01558x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.76925 ms/iter
+  Mode B (vssseg4e32): 6.70864 ms/iter
+  Speedup (A/B): 1.00904x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.90095 ms/iter
+  Mode B (vssseg4e32): 6.87181 ms/iter
+  Speedup (A/B): 1.00424x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.86429 ms/iter
+  Mode B (vssseg4e32): 6.78842 ms/iter
+  Speedup (A/B): 1.01118x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.64051 ms/iter
+  Mode B (vssseg4e32): 6.78191 ms/iter
+  Speedup (A/B): 0.97915x
+❯ make run_bench_store_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/2d/test_edge_store_bench
+EdgeStoreBench (PointXYZIEdge layout):
+  n=307200, iterations=20, warmup=5
+  stride_bytes=32 (float_stride=8)
+  offsets_f32: mag=4, dir=5, mx=6, my=7
+  Mode A (4x vsse32):   6.91716 ms/iter
+  Mode B (vssseg4e32): 6.78333 ms/iter
+  Speedup (A/B): 1.01973x
