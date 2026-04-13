@@ -1,0 +1,52 @@
+RVV Store MicroBench: starting...
+  n=262144 iters=50 warmup=5
+  [1/12] Strided AoS (4f): strided_store4
+    progress: 50/50
+  [2/12] Strided AoS (4f): strided_store4_seg
+    progress: 50/50
+  [3/12] Contiguous (4f): 4x vse32
+    progress: 50/50
+  [4/12] Contiguous (4f): vsseg4e32
+    progress: 50/50
+  [5/12] Indexed scatter (4f): modes
+    progress: 50/50
+    progress: 50/50
+  [6/12] Strided AoS (3f xyz): 3x vsse32
+    progress [3f stride]: 50/50
+  [7/12] Strided AoS (3f): strided_store3
+    progress [3f seg]: 50/50
+  [8/12] Contiguous (3f): 3x vse32
+    progress [3 SoA]: 50/50
+  [9/12] Contiguous (3f packed): vsseg3e32
+    progress [3 packed]: 50/50
+  [10/12] Indexed scatter (3f): modes
+    progress [3 scatter A]: 50/50
+    progress [3 scatter B]: 50/50
+RVV Store MicroBench:
+  n=262144 iters=50 warmup=5
+  [Strided AoS — 4 fields]
+    stride_bytes=32
+    A: strided_store4_fields (4×vsse32) 6.444978 ms/iter
+    B: strided_store4_seg (vssseg4)    5.247427 ms/iter
+    speedup (A/B):      1.228x
+  [Contiguous — 4]
+    C: 4x vse32         2.704875 ms/iter
+    D: vsseg4e32        2.144836 ms/iter
+    speedup (C/D):      1.261x
+  [Indexed scatter — 4]
+    E: scatter4_fields (4×vsuxei32)  6.848453 ms/iter
+    F: scatter4_seg (vsuxseg4ei32)    5.422780 ms/iter
+    speedup (E/F):       1.263x
+  [Strided AoS — 3 fields (xyz)]
+    stride_bytes=32
+    G: strided_store3_fields  5.181147 ms/iter
+    H: strided_store3_seg     4.522917 ms/iter
+    speedup (G/H):            1.146x
+  [Contiguous — 3]
+    I: 3× vse32               2.436869 ms/iter
+    J: vsseg3e32 (packed xyz) 2.029983 ms/iter
+    speedup (I/J):            1.200x
+  [Indexed scatter — 3]
+    K: scatter3_fields        5.756894 ms/iter
+    L: scatter3_seg           4.694333 ms/iter
+    speedup (K/L):            1.226x

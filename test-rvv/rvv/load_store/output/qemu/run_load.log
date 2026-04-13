@@ -1,0 +1,28 @@
+RVV Load MicroBench: starting...
+  n_points=262144 iters=50 warmup=5
+  [1/6] Strided AoS: 3x vlse32
+    progress: 50/50
+  [2/6] Strided AoS: vlsseg3e32
+    progress: 50/50
+  [3/6] Contiguous (Packed xyz interleaved): 3x vlse32 (stride=12)
+    progress: 50/50
+  [4/6] Contiguous (Packed xyz interleaved): vlseg3e32
+    progress: 50/50
+  [5/6] Indexed AoS gather: 3x vluxei32
+    progress: 50/50
+  [6/6] Indexed AoS gather: vluxseg3ei32
+    progress: 50/50
+RVV Load MicroBench:
+  n_points=262144 iters=50 warmup=5
+  [Strided AoS]
+    A: 3x vlse32        5.542506 ms/iter
+    B: vlsseg3e32       4.655304 ms/iter
+    speedup (A/B):      1.191x
+  [Contiguous (Packed xyz interleaved)]
+    C: 3x vlse32        5.483795 ms/iter
+    D: vlseg3e32        1.902546 ms/iter
+    speedup (C/D):      2.882x
+  [Indexed AoS gather]
+    E: 3x vluxei32      6.851031 ms/iter
+    F: vluxseg3ei32     6.029977 ms/iter
+    speedup (E/F):      1.136x

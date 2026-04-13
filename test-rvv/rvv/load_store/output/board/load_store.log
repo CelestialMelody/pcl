@@ -1,0 +1,86 @@
+❯ make run_load
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/rvv/load_store/bench_rvv_load_compare 262144 50 5 2>&1 | tee /root/pcl-test/rvv/load_store/output/run_load.log
+RVV Load MicroBench: starting...
+  n_points=262144 iters=50 warmup=5
+  [1/6] Strided AoS: 3x vlse32
+    progress: 50/50
+  [2/6] Strided AoS: vlsseg3e32
+    progress: 50/50
+  [3/6] Contiguous (Packed xyz interleaved): 3x vlse32 (stride=12)
+    progress: 50/50
+  [4/6] Contiguous (Packed xyz interleaved): vlseg3e32
+    progress: 50/50
+  [5/6] Indexed AoS gather: 3x vluxei32
+    progress: 50/50
+  [6/6] Indexed AoS gather: vluxseg3ei32
+    progress: 50/50
+RVV Load MicroBench:
+  n_points=262144 iters=50 warmup=5
+  [Strided AoS]
+    A: 3x vlse32        2.108906 ms/iter
+    B: vlsseg3e32       0.742259 ms/iter
+    speedup (A/B):      2.841x
+  [Contiguous (Packed xyz interleaved)]
+    C: 3x vlse32        1.054804 ms/iter
+    D: vlseg3e32        0.661796 ms/iter
+    speedup (C/D):      1.594x
+  [Indexed AoS gather]
+    E: 3x vluxei32      53.119016 ms/iter
+    F: vluxseg3ei32     52.253730 ms/iter
+    speedup (E/F):      1.017x
+❯ make run_store
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/rvv/load_store/bench_rvv_store_compare 262144 50 5 2>&1 | tee /root/pcl-test/rvv/load_store/output/run_store.log
+RVV Store MicroBench: starting...
+  n=262144 iters=50 warmup=5
+  [1/12] Strided AoS (4f): strided_store4
+    progress: 50/50
+  [2/12] Strided AoS (4f): strided_store4_seg
+    progress: 50/50
+  [3/12] Contiguous (4f): 4x vse32
+    progress: 50/50
+  [4/12] Contiguous (4f): vsseg4e32
+    progress: 50/50
+  [5/12] Indexed scatter (4f): modes
+    progress: 50/50
+    progress: 50/50
+  [6/12] Strided AoS (3f xyz): 3x vsse32
+    progress [3f stride]: 50/50
+  [7/12] Strided AoS (3f): strided_store3
+    progress [3f seg]: 50/50
+  [8/12] Contiguous (3f): 3x vse32
+    progress [3 SoA]: 50/50
+  [9/12] Contiguous (3f packed): vsseg3e32
+    progress [3 packed]: 50/50
+  [10/12] Indexed scatter (3f): modes
+    progress [3 scatter A]: 50/50
+    progress [3 scatter B]: 50/50
+RVV Store MicroBench:
+  n=262144 iters=50 warmup=5
+  [Strided AoS — 4 fields]
+    stride_bytes=32
+    A: strided_store4_fields (4×vsse32) 4.360192 ms/iter
+    B: strided_store4_seg (vssseg4)    3.990060 ms/iter
+    speedup (A/B):      1.093x
+  [Contiguous — 4]
+    C: 4x vse32         2.691890 ms/iter
+    D: vsseg4e32        1.458553 ms/iter
+    speedup (C/D):      1.846x
+  [Indexed scatter — 4]
+    E: scatter_store4_fields (4×vsuxei32) 20.783056 ms/iter
+    F: scatter_store4_seg (vsuxseg4ei32) 16.721060 ms/iter
+    speedup (E/F):       1.243x
+  [Strided AoS — 3 fields (xyz)]
+    stride_bytes=32
+    G: strided_store3_fields  4.322889 ms/iter
+    H: strided_store3_seg     3.982744 ms/iter
+    speedup (G/H):            1.085x
+  [Contiguous — 3]
+    I: 3× vse32               1.899198 ms/iter
+    J: vsseg3e32 (packed xyz) 0.452573 ms/iter
+    speedup (I/J):            4.196x
+  [Indexed scatter — 3]
+    K: scatter_store3_fields  19.718161 ms/iter
+    L: scatter_store3_seg     16.442615 ms/iter
+    speedup (K/L):            1.199x
