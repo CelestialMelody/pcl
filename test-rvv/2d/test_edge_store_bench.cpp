@@ -259,7 +259,7 @@ int main(int argc, char** argv)
   }
 
   // Ensure sink is observable.
-  std::cout << "  sink=" << g_sink_f32 << std::endl;
+  // std::cout << "  sink=" << g_sink_f32 << std::endl;
   return 0;
 #endif
 }
