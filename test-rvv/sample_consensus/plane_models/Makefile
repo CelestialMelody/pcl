@@ -61,10 +61,15 @@ SRCS_TEST   = test_sample_consensus_plane_models.cpp
 TARGET_BENCH = bench_sac_normal_plane
 SRCS_BENCH   = bench_sac_normal_plane.cpp
 
+# 目标（对比两种 RVV 加载策略：vluxei32 vs vluxseg3ei32）
+TARGET_BENCH_LOAD = bench_sac_normal_plane_load_compare
+SRCS_BENCH_LOAD   = bench_sac_normal_plane_load_compare.cpp
+
 # 编译产物目录
 BUILD_DIR = build
 TARGET_TEST_BIN  = $(BUILD_DIR)/$(TARGET_TEST)
 TARGET_BENCH_BIN = $(BUILD_DIR)/$(TARGET_BENCH)
+TARGET_BENCH_LOAD_BIN = $(BUILD_DIR)/$(TARGET_BENCH_LOAD)
 
 # =============================================================================
 #  Build Flags
@@ -142,7 +147,7 @@ LIBS = \
 #  Build Rules
 # =============================================================================
 
-all: $(TARGET_TEST_BIN) $(TARGET_BENCH_BIN)
+all: $(TARGET_TEST_BIN) $(TARGET_BENCH_BIN) $(TARGET_BENCH_LOAD_BIN)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -155,8 +160,13 @@ $(TARGET_BENCH_BIN): $(SRCS_BENCH) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $(SRCS_BENCH) $(LDFLAGS) $(LIBS) -o $(TARGET_BENCH)
 	mv -f $(TARGET_BENCH) $(TARGET_BENCH_BIN)
 
+$(TARGET_BENCH_LOAD_BIN): $(SRCS_BENCH_LOAD) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(SRCS_BENCH_LOAD) $(LDFLAGS) $(LIBS) -o $(TARGET_BENCH_LOAD)
+	mv -f $(TARGET_BENCH_LOAD) $(TARGET_BENCH_LOAD_BIN)
+
 clean:
-	rm -f $(TARGET_TEST) $(TARGET_BENCH) $(TARGET_TEST_BIN) $(TARGET_BENCH_BIN)
+	rm -f $(TARGET_TEST) $(TARGET_BENCH) $(TARGET_BENCH_LOAD) \
+		$(TARGET_TEST_BIN) $(TARGET_BENCH_BIN) $(TARGET_BENCH_LOAD_BIN)
 
 # =============================================================================
 #  Run Rules
@@ -172,6 +182,10 @@ run_bench: clean $(TARGET_BENCH_BIN)
 	LD_LIBRARY_PATH=$(RISCV_LIB_PATH):$$LD_LIBRARY_PATH \
 	qemu-riscv64 -L $(RISCV_SYSROOT) -cpu rv64,v=true,vlen=256,elen=64 ./$(TARGET_BENCH_BIN) $(PCD_FILES)
 
+run_bench_load: clean $(TARGET_BENCH_LOAD_BIN)
+	LD_LIBRARY_PATH=$(RISCV_LIB_PATH):$$LD_LIBRARY_PATH \
+	qemu-riscv64 -L $(RISCV_SYSROOT) -cpu rv64,v=true,vlen=256,elen=64 ./$(TARGET_BENCH_LOAD_BIN) $(PCD_FILES) 200
+
 # =============================================================================
 #  Remote Deployment (RISC-V 板卡)
 # =============================================================================
@@ -184,6 +198,7 @@ REMOTE_PCD_FILES = $(notdir $(PCD_FILES))
 
 # 需要一并拷贝到板卡的 PCD 测试数据
 PCD_FILE ?= sac_plane_test.pcd
+PCD_FILE_PATH := $(PCD_FILES_DIR)/$(PCD_FILE)
 
 deploy_files: $(PCD_FILES)
 	@echo "[DEPLOY] Syncing PCD test data $(PCD_FILES) only..."
@@ -191,14 +206,21 @@ deploy_files: $(PCD_FILES)
 	@rsync -avzP $(PCD_FILES) $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_PCD_FILES_DIR)/
 	@echo "[DONE] PCD test data deployed."
 
-deploy_bench: clean $(TARGET_BENCH_BIN) $(PCD_FILE) deploy_files
+deploy_bench: clean $(TARGET_BENCH_BIN) $(PCD_FILE_PATH) deploy_files
 	@echo "[DEPLOY] Stripping and Syncing $(TARGET_BENCH)..."
 	@riscv64-unknown-linux-gnu-strip -s ./$(TARGET_BENCH_BIN) -o ./$(TARGET_BENCH)_stripped
 	@rsync -avzP ./$(TARGET_BENCH)_stripped $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_DIR)/$(TARGET_BENCH)
 	@rm -f ./$(TARGET_BENCH)_stripped
 	@echo "[DONE] $(TARGET_BENCH) deployed."
 
-deploy_test: clean $(TARGET_TEST_BIN) $(PCD_FILE) deploy_files
+deploy_bench_load: clean $(TARGET_BENCH_LOAD_BIN) $(PCD_FILE_PATH) deploy_files
+	@echo "[DEPLOY] Stripping and Syncing $(TARGET_BENCH_LOAD)..."
+	@riscv64-unknown-linux-gnu-strip -s ./$(TARGET_BENCH_LOAD_BIN) -o ./$(TARGET_BENCH_LOAD)_stripped
+	@rsync -avzP ./$(TARGET_BENCH_LOAD)_stripped $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_DIR)/$(TARGET_BENCH_LOAD)
+	@rm -f ./$(TARGET_BENCH_LOAD)_stripped
+	@echo "[DONE] $(TARGET_BENCH_LOAD) deployed."
+
+deploy_test: clean $(TARGET_TEST_BIN) $(PCD_FILE_PATH) deploy_files
 	@echo "[DEPLOY] Stripping and Syncing $(TARGET_TEST)..."
 	@riscv64-unknown-linux-gnu-strip -s ./$(TARGET_TEST_BIN) -o ./$(TARGET_TEST)_stripped
 	@rsync -avzP ./$(TARGET_TEST)_stripped $(REMOTE_USER)@$(REMOTE_IP):$(REMOTE_DIR)/$(TARGET_TEST)
