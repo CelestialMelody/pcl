@@ -1,16 +1,61 @@
 # RVV AOS 数据加载与写回策略
 
-## 数据加载方式（vluxei32 vs vluxseg3ei32）
+本报告汇总了 PCL 在 RISC-V 矢量扩展（RVV）优化过程中，针对点云 / 结构体数组（AoS）布局下的数据加载与写回策略研究。
 
-本文用于记录 `pcl::SampleConsensusModelNormalPlane` 的 RVV 实现中，**点/法线数据加载方式**的选择依据与实测结论。
+---
 
-### 背景与对比点
+## 1. 隔离微基准：`test-rvv/rvv/load_store`
+
+### 1.1 测试程序说明
+
+- `bench_rvv_load_compare`：按 Strided AoS → Contiguous（紧密交错 xyz）→ Indexed AoS gather 三组对比 load 形态。
+- `bench_rvv_store_compare`：按 Strided AoS → Contiguous → Indexed scatter 对比 store / scatter 形态（含 4 字段与 3 字段 xyz 子场景）。
+
+### 1.2 板卡实测结果：`output/board/load_store.log`
+
+测试环境基于 Milk-V Jupiter 开发板，参数配置为 `n_points=262144`，迭代 `50` 次。
+
+#### 1.2.1 Load（`bench_rvv_load_compare`）
+
+| 场景 | Mode A（拆分指令） | Mode B（segment / 合并形态） | speedup (A/B) |
+| --- | --- | --- | --- |
+| Strided AoS（顺序遍历结构体，`x/y/z` 固定 stride） | `3× vlse32` → 2.108906 ms/iter | `vlsseg3e32` → 0.742259 ms/iter | 2.841× |
+| Contiguous（`xyzxyz...` 紧密交错，stride=12） | `3× vlse32` → 1.054804 ms/iter | `vlseg3e32` → 0.661796 ms/iter | 1.594× |
+| Indexed AoS gather（间接索引） | `3× vluxei32` → 53.119016 ms/iter | `vluxseg3ei32` → 52.253730 ms/iter | 1.017× |
+
+分析：
+
+- 顺序 / 等步长（strided 或 contiguous）：在顺序或等步长场景下，`vlsseg` / `vlseg` 类指令通过减少前端指令译码与发射压力，结合访存合并（Memory Coalescing），能够获得显著增益。
+- 索引 gather：在 `Indexed Gather` 场景中，加速比缩减至 2% 以内。此时瓶颈已由指令条数转移至硬件的随机访存延迟，分段加载的语义优势被离散地址引发的 Cache Miss 掩盖。
+
+#### 1.2.2 Store（`bench_rvv_store_compare`）
+
+| 场景 | Mode A | Mode B | speedup (A/B) |
+| --- | --- | --- | --- |
+| Strided AoS — 4 字段 | `4× vsse32`（strided_store4_fields）4.360192 ms/iter | `vssseg4`（strided_store4_seg）3.990060 ms/iter | 1.093× |
+| Contiguous — 4 字段（SoA 四连续数组） | `4× vse32` 2.691890 ms/iter | `vsseg4e32` 1.458553 ms/iter | 1.846× |
+| Indexed scatter — 4 字段 | `4× vsuxei32` 20.783056 ms/iter | `vsuxseg4ei32` 16.721060 ms/iter | 1.243× |
+| Strided AoS — 3 字段（xyz） | strided_store3_fields 4.322889 ms/iter | strided_store3_seg（`vssseg3`）3.982744 ms/iter | 1.085× |
+| Contiguous — 3 字段（packed xyz） | `3× vse32` 1.899198 ms/iter | `vsseg3e32` 0.452573 ms/iter | 4.196× |
+| Indexed scatter — 3 字段 | scatter_store3_fields 19.718161 ms/iter | scatter_store3_seg 16.442615 ms/iter | 1.199× |
+
+分析：
+
+- 连续写回（contiguous）：`vsseg3` / `vsseg4` 相对多次 `vse` 往往优势最大，与写合并、指令条数减少都相符。
+- Strided AoS：段存储相对多次 `vsse` 约有 8～10% 量级提升，需结合字段布局与是否真满足 segment 对齐前提再改生产代码。
+- Indexed scatter：`vsuxseg` 相对多次 `vsuxei` 约有 20～25% 量级提升，仍弱于 contiguous 下的倍数，主因仍是离散写地址。
+
+---
+
+## 2. 数据加载（`vluxei32` vs `vluxseg3ei32`）实测
+
+### 2.1 背景说明
 
 在 `sample_consensus/include/pcl/sample_consensus/impl/sac_model_normal_plane.hpp` 的 `countWithinDistanceRVV()` 中，曾经存在两种加载策略用于对比：
 
 ```cpp
 #ifdef PCL_RVV_BENCHMARK_USE_VLUXSEG
-    // --- Approach B: Indexed Segment Load (vluxseg3ei32) ---
+    // --- Mode A: Indexed Segment Load (vluxseg3ei32) ---
 
     // 1) Load PointT (x, y, z) in a single instruction.
     const vfloat32m2x3_t v_xyz = __riscv_vluxseg3ei32_v_f32m2x3(
@@ -31,7 +76,7 @@
     const vfloat32m2_t v_ny = __riscv_vget_v_f32m2x3_f32m2(v_nxyz, 1);
     const vfloat32m2_t v_nz = __riscv_vget_v_f32m2x3_f32m2(v_nxyz, 2);
 #else
-    // --- Approach A: Standard Gather (vluxei32) ---
+    // --- Mode B: Standard Gather (vluxei32) ---
 
     const vfloat32m2_t v_px = __riscv_vluxei32_v_f32m2(
         reinterpret_cast<const float*>(points_base + offsetof(PointT, x)), v_off_pt, vl);
@@ -52,93 +97,54 @@
 #endif
 ```
 
-- **Approach A：`vluxei32`（gather）**
-  - 分别 gather `x/y/z` 与 `nx/ny/nz`（多条指令）
-  - 通过 `base + offsetof(field)` + `byte_offsets` 访问结构体成员
-- **Approach B：`vluxseg3ei32`（indexed segment load）**
+- Mode A：`vluxseg3ei32`（indexed segment load）
   - 通过 segment load 一次性加载三元组（`x,y,z` 或 `nx,ny,nz`）
   - 使用元组寄存器类型（例如 `vfloat32m2x3_t`），再 `vget` 提取分量
+- Mode B：`vluxei32`（gather）
+  - 分别 gather `x/y/z` 与 `nx/ny/nz`（多条指令）
+  - 通过 `base + offsetof(field)` + `byte_offsets` 访问结构体成员
 
-二者在算法层面等价，主要差异来自：**指令数量、寄存器压力、以及具体微架构对指令的实现质量**。
+二者在算法层面等价，主要差异来自：指令数量、寄存器压力、以及具体微架构对指令的实现质量。
 
----
+### 2.2 板卡实测与分析
 
-### `vluxei32`（gather）
+- 测试位置：`test-rvv/sample_consensus/plane_models/bench_sac_normal_plane_load_compare`
+- 参数：`iters=200, warmup=5, threshold=0.05, normal_weight=0.1`
+- 日志：`test-rvv/sample_consensus/plane_models/output/board/bench_load_compare.log`
 
-- **寄存器压力可能更小**
-  - `vluxseg3` 会产生元组寄存器（例如 `m2x3`），等价于一次性占用连续的 3 组寄存器。
-  - 当后续计算链很长、临时变量很多时，可能更容易触发 spilling（寄存器溢出到栈），导致性能反而下降。
-- **字段加载更灵活**
-  - 当只需要结构体里的部分字段，gather 可以更“按需取数”；segment 则倾向于成组加载。
+测试在同一 binary 内对比两种路径，并检查两者 `check_count` 一致。
 
-### `vluxseg3ei32`（segment）
+结果（多次运行）：
 
-- **语义更贴近“加载一个点/一个法线三元组”**
-  - 对 `PointXYZ` / `Normal` 这种典型 SoA-like 访问（按索引抓取结构体内的连续字段）更直观，代码可读性更好。
-- **通常指令条数更少**
-  - 理论上 segment load 可以减少多次 gather 的指令发射/译码开销。
+- gather（`vluxei32`）：约 `0.0759 ~ 0.0784 ms/iter`
+- segment gather（`vluxseg3ei32`）：约 `0.0626 ~ 0.0692 ms/iter`
+- speedup（gather/seg）：约 `1.10x ~ 1.24x`（多数 run 对 `vluxseg3ei32` 更有利，但仍存在波动）
 
-### 板卡实测结论（Milk-V Jupiter，真实硬件）
+分析：
 
-在板卡上使用同一份输入 `sac_plane_test.pcd`（Points=3283），迭代 200 次，分别运行（多次重复）：
-
-- `bench_sac_normal_plane_load_vluxseg`
-- `bench_sac_normal_plane_load_gather`
-
-测试显示：
-
-- **gather（vluxei32）**：约 `0.0603 ~ 0.0697 ms/iter`（分布更集中）
-- **vluxseg（vluxseg3ei32）**：约 `0.0594 ~ 0.0770 ms/iter`（波动更明显）
-
-结论：
-
-- **平均耗时差距极小**，但 **gather 在该板卡上更稳定**（方差更小、极端慢的尾部更少）。
-- 这类“稳定性”在工程上同样重要：更稳定意味着更可预期的延迟，也更利于后续做性能回归分析。
-
-### 最终策略
-
-**优先采用** `vluxei32`**（gather）作为加载实现**（在 Milk-V Jupiter 上更稳定，且平均性能接近）。
+- `vluxseg3ei32` 多数情况下更快，但波动仍存在。
+- 与隔离微基准中 Indexed AoS 仅 ~1.017× 的结论并不矛盾：真实内核除 indexed load 外还有距离、角度、`curvature` 等额外 load 与计算，整体比例被重塑；且 `n`、热循环结构、编译器调度均不同。
 
 ---
 
-## 数据写回方式 （`vsse32` vs `vssseg4e32`）
+## 3. 数据写回（`vsse32` vs `vssseg4e32`）实测
 
-本文用于记录 `pcl::2d::impl::edge.hpp`（Sobel/Prewitt/Canny 等）中 `PointXYZIEdge` 相关 RVV 写回策略的实测结论：是否能把
-`magnitude / direction / magnitude_x / magnitude_y` 这 4 个相邻 `float` 的写回从 4 次 `vsse32` 合并为 1 次段存储 `vssseg4e32`。
+### 3.1 背景说明
 
-### 实验设置
+测试 `pcl::2d::impl::edge.hpp`（Sobel/Prewitt/Canny 等）中 `PointXYZIEdge` 相关 RVV 写回策略对比：
+`magnitude / direction / magnitude_x / magnitude_y` 这 4 个相邻 `float` 的写回选择：4 次 `vsse32` 还是 1 次段存储 `vssseg4e32`。
 
-使用独立微基准：`test-rvv/2d/test_edge_store_bench.cpp`。
+### 3.2 板卡实测与分析
 
-- 背景：`edge.hpp` 中的写回点
+- 测试位置：`test-rvv/2d/test_edge_store_bench.cpp`
+- 参数：数组规模 `n = 640 * 480 = 307200`，`iterations = 20`，`warmup = 5`
+- 对比模式：
+  - Mode A：`4× __riscv_vsse32_v_f32m2` 分别写 4 个字段
+  - Mode B：`1× __riscv_vssseg4e32_v_f32m2x4` 段存储写 4 个字段
 
-```cpp
-// pcl/2d/include/pcl/2d/impl/edge.hpp (computeMagnitudeDirectionRVV)
-float* out_mx  = reinterpret_cast<float*>(base_out + j0 * stride_out + off_out_magnitude_x);
-float* out_my  = reinterpret_cast<float*>(base_out + j0 * stride_out + off_out_magnitude_y);
-float* out_mag = reinterpret_cast<float*>(base_out + j0 * stride_out + off_out_magnitude);
-float* out_dir = reinterpret_cast<float*>(base_out + j0 * stride_out + off_out_direction);
-__riscv_vsse32_v_f32m2(out_mx,  stride_out, v_mx,  vl);
-__riscv_vsse32_v_f32m2(out_my,  stride_out, v_my,  vl);
-__riscv_vsse32_v_f32m2(out_mag, stride_out, v_mag, vl);
-__riscv_vsse32_v_f32m2(out_dir, stride_out, v_dir, vl);
-```
-
-- 目标内存布局：`pcl::PointXYZIEdge` 的 4 个 float 字段
-  - `magnitude`（segment 0）
-  - `direction`（segment 1）
-  - `magnitude_x`（segment 2）
-  - `magnitude_y`（segment 3）
-- 数组规模：`n = 640 * 480 = 307200`
-- `iterations = 20`，`warmup = 5`
-- 固定只对比 store 指令形态：
-  - Mode A：4 次 `__riscv_vsse32_v_f32m2` 分别写 4 个字段
-  - Mode B：1 次 `__riscv_vssseg4e32_v_f32m2x4` 段存储写 4 个字段
-
-微基准中，Mode A 与 Mode B 的核心差异如下（两者都用同样的 `vlsseg4e32` 生成 `vfloat32m2x4_t`，只比较 store）：
+Mode A 与 Mode B 的核心差异如下：
 
 ```cpp
-// test-rvv/2d/test_edge_store_bench.cpp (simplified)
 vfloat32m2x4_t vt = __riscv_vlsseg4e32_v_f32m2x4(seg_base_in, stride_bytes, vl);
 
 // Mode A: 4x vsse32 (one per field)
@@ -155,29 +161,58 @@ __riscv_vsse32_v_f32m2(out_my,  stride_bytes, v_my,  vl);
 __riscv_vssseg4e32_v_f32m2x4(seg_base_out, stride_bytes, vt, vl);
 ```
 
-### 板卡实测结果
+分析与结论：
 
-Mode A（4x `vsse32`）/ Mode B（1x `vssseg4e32`）耗时（ms/iter）：
+结果（多次运行，`test-rvv/2d/output/board/bench_store_compare.log` 摘录）：
 
-- Run 1: 6.2849 / 6.8267
-- Run 2: 6.70214 / 6.81787
-- Run 3: 6.91148 / 6.88651
-- Run 4: 6.86585 / 6.80519
-- Run 5: 6.50117 / 6.70903
+- Mode A：约 `6.59 ~ 7.04 ms/iter`
+- Mode B：约 `6.71 ~ 7.15 ms/iter`
+- speedup（A/B）：约 `0.966x ~ 1.020x`
 
-汇总（5 次平均）：
+分析：
 
-- Mode A 平均：约 `6.6531 ms/iter`
-- Mode B 平均：约 `6.8091 ms/iter`
+- 两种写回方式差异接近测量噪声范围，未见稳定收益。
 
-结论：在当前板卡上，`vssseg4e32` **没有带来稳定的收益**（speedup 在约 `0.92x ~ 1.01x` 波动）；因此不建议把 `edge.hpp` 里的 store 主实现从 `vsse32` 直接替换为 `vssseg4e32`。
+---
 
-补充说明：
+## 4. 数据加载（`vlse32` vs `vlsseg3e32`）补充：`getMaxSegmentRVV`
 
-- **字段/segment 对应关系必须严格一致**：`PointXYZIEdge` 的字段顺序为 `magnitude -> direction -> magnitude_x -> magnitude_y`，段存储时 segment 0..3 也应按该顺序写回；顺序错位会导致字段对调。
-- **“指令条数更少”不等价于“写入更快/更稳”**：段存储是否能减少写停顿（Write Stall）高度依赖具体内存系统的写合并/写缓冲实现；从当前板卡数据看，`vssseg4e32` 的收益不稳定且平均不占优。
+### 4.1 背景说明
 
-### 最终策略
+针对 `common/include/pcl/common/distances.h` 的 `getMaxSegmentRVV()` 内层加载（`PointXYZ` 的 `x/y/z`），对比：
 
-写回仍优先采用：`__riscv_vsse32_v_f32m2`
+- Mode A：`3x vlse32`（分别加载 `x/y/z`）
+- Mode B：`vlsseg3e32`（一次段加载 `x,y,z`）
 
+### 4.2 板卡实测与分析
+
+- 参数：`n=2500, iters=20, warmup=3`
+- 位置：`test-rvv/common/distances` 相关 bench
+
+Mode A 与 Mode B 的核心差异如下（内层 `j` 循环对 `PointT` 的 `x/y/z` 加载）：
+
+```cpp
+const ptrdiff_t stride = static_cast<ptrdiff_t>(sizeof(PointT));
+
+// Mode A: 3x vlse32 (strided loads for x/y/z)
+const vfloat32m2_t vx = __riscv_vlse32_v_f32m2(&cloud[j].x, stride, vl);
+const vfloat32m2_t vy = __riscv_vlse32_v_f32m2(&cloud[j].y, stride, vl);
+const vfloat32m2_t vz = __riscv_vlse32_v_f32m2(&cloud[j].z, stride, vl);
+
+// Mode B: 1x vlsseg3e32 (segment strided load of x,y,z)
+const vfloat32m2x3_t v_xyz = __riscv_vlsseg3e32_v_f32m2x3(&cloud[j].x, stride, vl);
+const vfloat32m2_t vx = __riscv_vget_v_f32m2x3_f32m2(v_xyz, 0);
+const vfloat32m2_t vy = __riscv_vget_v_f32m2x3_f32m2(v_xyz, 1);
+const vfloat32m2_t vz = __riscv_vget_v_f32m2x3_f32m2(v_xyz, 2);
+```
+
+结果（多次运行）：
+
+- Mode A：约 `13.92 ~ 14.45 ms/iter`
+- Mode B：约 `12.16 ~ 12.67 ms/iter`
+- speedup（A/B）：约 1.14×（较稳定）
+
+分析：
+
+- “连续字段 + 大量重复访问”的场景，`vlsseg3e32` 更容易体现“少发指令/少寻址”的收益。
+- 与隔离微基准中 Strided AoS 下 ~2.84×（`load_store.log`，`n=262144`）相比，倍数更小是正常的：`getMaxSegmentRVV` 含完整距离与 argmax 逻辑，load 仅占一部分；且 `n`、编译内联、LMUL 等均不同。
