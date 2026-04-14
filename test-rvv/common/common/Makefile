@@ -42,7 +42,7 @@ TEST_OUTPUT_FILE      = $(OUTPUT_DIR_QEMU)/run_test.log
 
 ANALYZE_VEC_SCRIPT    = $(TEST_RVV_SHARED_SCRIPT_DIR)/analyze_vec_log.py
 BENCH_COMPARE_SCRIPT  = $(TEST_RVV_SHARED_SCRIPT_DIR)/analyze_bench_compare.py
-COMPARE_ASM_SCRIPT    = $(SCRIPT_DIR)/compare_rvv_asm.py
+COMPARE_ASM_SCRIPT    = $(TEST_RVV_SHARED_SCRIPT_DIR)/compare_rvv_asm.py
 # 优先使用本目录 .venv（与 `source .venv/bin/activate` 等价）；否则退回系统 python3
 VENV_PYTHON           := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/.venv/bin/python)
 PYTHON_BENCH_COMPARE  := $(shell test -x '$(VENV_PYTHON)' && echo '$(VENV_PYTHON)' || echo python3)
@@ -330,14 +330,16 @@ dump_bench_rvv:
 dump_bench_std:
 	@$(MAKE) ARCH=$(ARCH) dump_bench_inner USE_PCL_RVV10=0 TARGET_BENCH=bench_common_std
 
-# ================= RVV 汇编对比（Python 脚本, 检测 Eigen RVV 生效情况） =================
-# 两份 .full.asm 路径（与 build/asm/$(ARCH)/ 下 dump 输出一致），可覆盖
+# ================= RVV disassembly compare (compare_rvv_asm.py) =================
+# Paths to objdump -S -l listings under build/asm/$(ARCH)/; override if needed.
 ASM_FULL_STD ?= $(ASM_DIR)/$(ARCH)/bench_common_std.full.asm
 ASM_FULL_RVV ?= $(ASM_DIR)/$(ARCH)/bench_common_rvv.full.asm
 
 compare_asm: dump_bench_rvv dump_bench_std $(COMPARE_ASM_SCRIPT) | $(ASM_DIR)/$(ARCH)
 	@echo "[COMPARE] RVV in $(ASM_FULL_STD) vs $(ASM_FULL_RVV)..."
-	@python3 $(COMPARE_ASM_SCRIPT) "$(ASM_FULL_STD)" "$(ASM_FULL_RVV)" $(EXTRA_ARGS)
+	@python3 $(COMPARE_ASM_SCRIPT) "$(ASM_FULL_STD)" "$(ASM_FULL_RVV)" \
+		--with-eigen --mnemonic-top 15 \
+		$(EXTRA_ARGS)
 
 # ================= 清理 =================
 clean:
