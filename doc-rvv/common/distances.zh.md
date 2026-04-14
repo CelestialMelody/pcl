@@ -2,7 +2,7 @@
 
 本文记录 `common/include/pcl/common/distances.h` 在本仓库相对上游的 `__RVV10__` 扩展实现、分流逻辑、测试与性能数据。
 本仓库文件：[`common/include/pcl/common/distances.h`](../../common/include/pcl/common/distances.h)
-上游对照文件：[distances.h`](https://github.com/PointCloudLibrary/pcl/blob/master/common/include/pcl/common/distances.h)
+上游对照文件：[distances.h](https://github.com/PointCloudLibrary/pcl/blob/master/common/include/pcl/common/distances.h)
 
 ## 1. 背景与需求
 
@@ -29,7 +29,7 @@
 | 其他距离函数 | 标量/Eigen | 未 RVV 化，保持原实现 |
 
 数值一致性说明：
-当前实现保持同一数学目标，但 RVV 路径使用 `f32` 向量算子与向量归约，计算顺序与标量双循环不同；并且最值定位通过 `vmfeq + vfirst`。在存在近似相等候选值时，端点索引可能与标量路径不同，但单测未观察到行为错误。当前材料不足，未下更细粒度误差上界结论。
+当前实现保持同一数学目标，但 RVV 路径使用 `f32` 向量算子与向量归约，计算顺序与标量双循环不同；并且最值定位通过 `vmfeq + vfirst`。在存在近似相等候选值时，端点索引可能与标量路径不同，但单测未观察到行为错误。
 
 ## 3. 总体设计
 
