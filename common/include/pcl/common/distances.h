@@ -157,9 +157,8 @@ namespace pcl
         vy = __riscv_vfsub_vf_f32m2 (vy, yi, vl);
         vz = __riscv_vfsub_vf_f32m2 (vz, zi, vl);
 
-        vfloat32m2_t vdist2 = __riscv_vfmul_vv_f32m2 (vx, vx, vl);
-        vdist2 = __riscv_vfmacc_vv_f32m2 (vdist2, vy, vy, vl);
-        vdist2 = __riscv_vfmacc_vv_f32m2 (vdist2, vz, vz, vl);
+        vfloat32m2_t vdist2 = __riscv_vfmacc_vv_f32m2(
+          __riscv_vfmacc_vv_f32m2(__riscv_vfmul_vv_f32m2(vx, vx, vl), vy, vy, vl), vz, vz, vl);
 
         const vfloat32m1_t vinit = __riscv_vfmv_s_f_f32m1 (max_dist, 1);
         const vfloat32m1_t vmax1 = __riscv_vfredmax_vs_f32m2_f32m1 (vdist2, vinit, vl);
