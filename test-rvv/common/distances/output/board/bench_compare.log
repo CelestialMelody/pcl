@@ -1,0 +1,55 @@
+[BOARD] Benchmark Std -> /root/pcl-test/common/distances/output/run_bench_std.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_distances_std 2>&1 | tee /root/pcl-test/common/distances/output/run_bench_std.log
+============================================================
+ PCL distances.h Benchmark
+ linear_points: 1000000  maxseg_points: 2500
+ iterations: 20 iter: 20
+ Dataset: linear_points=1000000 maxseg_points=2500 iterations=20 maxseg_seeds=(7,11)
+ build: __RVV10__ NOT defined
+============================================================
+getMaxSegment (cloud, O(n^2))             : 62.7429 ms/iter
+getMaxSegment (indices, O(n^2))           : 87.8233 ms/iter
+============================================================
+[BOARD] Benchmark RVV -> /root/pcl-test/common/distances/output/run_bench_rvv.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_distances_rvv 2>&1 | tee /root/pcl-test/common/distances/output/run_bench_rvv.log
+============================================================
+ PCL distances.h Benchmark
+ linear_points: 1000000  maxseg_points: 2500
+ iterations: 20 iter: 20
+ Dataset: linear_points=1000000 maxseg_points=2500 iterations=20 maxseg_seeds=(7,11)
+ build: __RVV10__ defined
+============================================================
+getMaxSegment (cloud, O(n^2))             : 12.4788 ms/iter
+getMaxSegment (indices, O(n^2))           : 12.4328 ms/iter
+============================================================
+python3 '/root/pcl-test/common/distances/script/analyze_bench_compare.py' \
+        --std-log /root/pcl-test/common/distances/output/run_bench_std.log \
+        --rvv-log /root/pcl-test/common/distances/output/run_bench_rvv.log \
+        --device "Milkv-Jupiter" \
+        --vlen-desc "see SoC / ELF (board)" \
+
+=============================================================================================
+ PCL distances.h Benchmark (Std vs RVV)
+=============================================================================================
+[Benchmark Context]
+  Device    : Milkv-Jupiter
+  VLEN      : see SoC / ELF (board)
+  Dataset   : linear_points=1000000 maxseg_points=2500 iterations=20 maxseg_seeds=(7,11)
+  Iterations: 未解析到 Iter/Iterations
+              Total Time 不计算（n/a）
+              建议在 bench 输出中增加 Iterations: N/iter: N，或用 --iterations 覆盖
+  Std log   : /root/pcl-test/common/distances/output/run_bench_std.log
+  RVV log   : /root/pcl-test/common/distances/output/run_bench_rvv.log
+
+---------------------------------------------------------------------------------------------
+Benchmark Item                   | Impl   |       Avg Time |     Total Time |        Speedup
+---------------------------------|--------|----------------|----------------|----------------
+getMaxSegment (cloud, O(n^2))    | Std    |     62.7429 ms |            n/a |    [   1.00x ]
+                                 | RVV    |     12.4788 ms |            n/a |    [   5.03x ]
+---------------------------------|--------|----------------|----------------|----------------
+getMaxSegment (indices, O(n^2))  | Std    |     87.8233 ms |            n/a |    [   1.00x ]
+                                 | RVV    |     12.4328 ms |            n/a |    [   7.06x ]
+---------------------------------|--------|----------------|----------------|----------------
+=============================================================================================

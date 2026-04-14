@@ -1,0 +1,17 @@
+make[1]: 进入目录“/home/zoomin/codes/RISCV/workspace/pcl/test-rvv/common/distances”
+rm -rf build/riscv/bench_distances
+[BUILD] Compiling Benchmark (riscv)...
+riscv64-unknown-linux-gnu-g++ -std=c++17 -O3 -g -march=rv64gcv -mabi=lp64d -fopt-info-vec-missed=log/vec_missed_log/vec_missed_2026-04-08_15-04-32.log -DPCL_SILENCE_MALLOC_WARNING=1 -DEIGEN_RISCV64_USE_RVV10 -march=rv64gcv_zvl256b -mrvv-vector-bits=zvl -DPCL_NO_PRECOMPILE -I/home/zoomin/codes/RISCV/workspace/pcl/common/include -I/home/zoomin/codes/RISCV/workspace/pcl/test/include -I/home/zoomin/codes/RISCV/workspace/pcl -I/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/include/pcl-1.15 -I/home/zoomin/codes/RISCV/workspace/riscv/eigen-rvv/include/eigen3 -I/home/zoomin/codes/RISCV/workspace/riscv/boost/include -I/home/zoomin/codes/RISCV/workspace/riscv/gtest/include  bench_distances.cpp -L/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib -L/home/zoomin/codes/RISCV/workspace/riscv/boost/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/boost/lib -L/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib  -lpcl_common -lm -o build/riscv/bench_distances_std
+[RUN] Benchmark on riscv (USE_PCL_RVV10=0)...
+LD_LIBRARY_PATH=/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib:/home/zoomin/codes/RISCV/workspace/riscv/boost/lib:/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib:$LD_LIBRARY_PATH qemu-riscv64 -L /opt/riscv64/sysroot -cpu rv64,v=true,vlen=256,elen=64 ./build/riscv/bench_distances_std
+============================================================
+ PCL distances.h Benchmark
+ linear_points: 1000000  maxseg_points: 2500
+ iterations: 20 iter: 20
+ Dataset: linear_points=1000000 maxseg_points=2500 iterations=20 maxseg_seeds=(7,11)
+ build: __RVV10__ NOT defined
+============================================================
+getMaxSegment (cloud, O(n^2))             : 117.5419 ms/iter
+getMaxSegment (indices, O(n^2))           : 118.2081 ms/iter
+============================================================
+make[1]: 离开目录“/home/zoomin/codes/RISCV/workspace/pcl/test-rvv/common/distances”

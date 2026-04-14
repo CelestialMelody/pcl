@@ -1,0 +1,22 @@
+❯ make run_test
+[BOARD] Unit Test -> /root/pcl-test/common/distances/output/run_test.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/test_distances 2>&1 | tee /root/pcl-test/common/distances/output/run_test.log
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from PCL
+[ RUN      ] PCL.squaredEuclideanDistance_PointXYZ
+[       OK ] PCL.squaredEuclideanDistance_PointXYZ (0 ms)
+[ RUN      ] PCL.euclideanDistance_PointXYZ
+[       OK ] PCL.euclideanDistance_PointXYZ (0 ms)
+[ RUN      ] PCL.sqrPointToLineDistance_basic
+[       OK ] PCL.sqrPointToLineDistance_basic (0 ms)
+[ RUN      ] PCL.getMaxSegment_cloud
+[       OK ] PCL.getMaxSegment_cloud (0 ms)
+[ RUN      ] PCL.getMaxSegment_indices
+[       OK ] PCL.getMaxSegment_indices (0 ms)
+[----------] 5 tests from PCL (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 5 tests.

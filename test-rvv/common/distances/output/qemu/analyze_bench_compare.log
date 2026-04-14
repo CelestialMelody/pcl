@@ -1,0 +1,23 @@
+=============================================================================================
+ PCL distances.h Benchmark (Std vs RVV)
+=============================================================================================
+[Benchmark Context]
+  Device    : RISC-V RVV target (qemu, rv64gcv)
+  VLEN      : 256-bit (vlen=256, elen=64)
+  Dataset   : linear_points=1000000 maxseg_points=2500 iterations=20 maxseg_seeds=(7,11)
+  Iterations: 未解析到 Iter/Iterations
+              Total Time 不计算（n/a）
+              建议在 bench 输出中增加 Iterations: N/iter: N，或用 --iterations 覆盖
+  Std log   : output/qemu/run_bench_std.log
+  RVV log   : output/qemu/run_bench_rvv.log
+
+---------------------------------------------------------------------------------------------
+Benchmark Item                   | Impl   |       Avg Time |     Total Time |        Speedup
+---------------------------------|--------|----------------|----------------|----------------
+getMaxSegment (cloud, O(n^2))    | Std    |    115.8283 ms |            n/a |    [   1.00x ]
+                                 | RVV    |    653.3465 ms |            n/a |    [   0.18x ]
+---------------------------------|--------|----------------|----------------|----------------
+getMaxSegment (indices, O(n^2))  | Std    |    118.8314 ms |            n/a |    [   1.00x ]
+                                 | RVV    |    630.0079 ms |            n/a |    [   0.19x ]
+---------------------------------|--------|----------------|----------------|----------------
+=============================================================================================

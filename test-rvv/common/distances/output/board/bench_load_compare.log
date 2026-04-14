@@ -1,0 +1,90 @@
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      13.922714 ms/iter
+  Mode B (vlsseg3e32):     12.166904 ms/iter
+  Speedup (A/B):           1.144x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      14.446058 ms/iter
+  Mode B (vlsseg3e32):     12.633324 ms/iter
+  Speedup (A/B):           1.143x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      14.422847 ms/iter
+  Mode B (vlsseg3e32):     12.650185 ms/iter
+  Speedup (A/B):           1.140x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      13.936252 ms/iter
+  Mode B (vlsseg3e32):     12.232128 ms/iter
+  Speedup (A/B):           1.139x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      13.922393 ms/iter
+  Mode B (vlsseg3e32):     12.159968 ms/iter
+  Speedup (A/B):           1.145x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      14.006103 ms/iter
+  Mode B (vlsseg3e32):     12.179104 ms/iter
+  Speedup (A/B):           1.150x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      13.930900 ms/iter
+  Mode B (vlsseg3e32):     12.169096 ms/iter
+  Speedup (A/B):           1.145x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      14.427687 ms/iter
+  Mode B (vlsseg3e32):     12.669647 ms/iter
+  Speedup (A/B):           1.139x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      14.414508 ms/iter
+  Mode B (vlsseg3e32):     12.653397 ms/iter
+  Speedup (A/B):           1.139x
+  check: dist2=1097.990 i_min=105 i_max=202
+❯ make run_bench_load_compare
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/distances/bench_getmaxsegment_load_compare 2>&1 | tee
+getMaxSegmentRVV Load Strategy Compare:
+  n=2500 iters=20 warmup=3
+  Mode A (3x vlse32):      13.927393 ms/iter
+  Mode B (vlsseg3e32):     12.175346 ms/iter
+  Speedup (A/B):           1.144x
+  check: dist2=1097.990 i_min=105 i_max=202
