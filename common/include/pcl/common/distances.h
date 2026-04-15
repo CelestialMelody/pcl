@@ -116,10 +116,10 @@ namespace pcl
                   PointT &pmin, PointT &pmax)
   {
 #if defined(__RVV10__)
-  return getMaxSegmentRVV (cloud, pmin, pmax);
-#else
-  return getMaxSegmentStandard (cloud, pmin, pmax);
+    if constexpr (pcl::rvv_load::kRVVXYZPointCompatible<PointT>)
+      return getMaxSegmentRVV (cloud, pmin, pmax);
 #endif
+    return getMaxSegmentStandard (cloud, pmin, pmax);
   }
 
 #if defined(__RVV10__)
@@ -234,10 +234,10 @@ namespace pcl
                  PointT &pmin, PointT &pmax)
   {
 #if defined(__RVV10__)
-    return getMaxSegmentRVV (cloud, indices, pmin, pmax);
-#else
-    return getMaxSegmentStandard (cloud, indices, pmin, pmax);
+    if constexpr (pcl::rvv_load::kRVVXYZPointCompatible<PointT>)
+      return getMaxSegmentRVV (cloud, indices, pmin, pmax);
 #endif
+    return getMaxSegmentStandard (cloud, indices, pmin, pmax);
   }
 
   template <typename PointT> double inline
