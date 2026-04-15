@@ -37,10 +37,28 @@
 
 #pragma once
 
+#ifdef __RVV10__
+#include <type_traits>
+#include <utility>
+#endif
+
 namespace pcl {
 namespace rvv_store {
 
 #ifdef __RVV10__
+
+/** \note Deliberately duplicated from \c pcl::rvv_load (same semantics) so this header does not depend on
+  * \c rvv_point_load.h; keep the two definitions in sync. */
+template <typename T>
+using RVVCoordScalar = std::remove_cv_t<std::remove_reference_t<T>>;
+
+/** True if \a PointT is standard-layout and \c x, \c y, \c z are \c float (AoS \c offsetof + RVV \c f32 stores). */
+template <typename PointT>
+inline constexpr bool kRVVXYZPointCompatible =
+    std::is_standard_layout_v<PointT> &&
+    std::is_same_v<RVVCoordScalar<decltype (std::declval<PointT> ().x)>, float> &&
+    std::is_same_v<RVVCoordScalar<decltype (std::declval<PointT> ().y)>, float> &&
+    std::is_same_v<RVVCoordScalar<decltype (std::declval<PointT> ().z)>, float>;
 
 template <typename T>
 inline vuint32m2_t

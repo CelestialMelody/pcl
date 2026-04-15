@@ -37,10 +37,26 @@
 
 #pragma once
 
+#include <type_traits>
+#include <utility>
+
 namespace pcl {
 namespace rvv_load {
 
 #ifdef __RVV10__
+
+/** Scalar behind \a PointT::x / \a y / \a z access (member or accessor; after cv/ref strip). */
+template <typename T>
+using RVVCoordScalar = std::remove_cv_t<std::remove_reference_t<T>>;
+
+/** True if \a PointT is standard-layout and \c x, \c y, \c z are \c float — matches the assumptions of
+  * \c offsetof(PointT, x|y|z) plus RVV \c f32 load/store helpers and their \c static_assert guards. */
+template <typename PointT>
+inline constexpr bool kRVVXYZPointCompatible =
+    std::is_standard_layout_v<PointT> &&
+    std::is_same_v<RVVCoordScalar<decltype (std::declval<PointT> ().x)>, float> &&
+    std::is_same_v<RVVCoordScalar<decltype (std::declval<PointT> ().y)>, float> &&
+    std::is_same_v<RVVCoordScalar<decltype (std::declval<PointT> ().z)>, float>;
 
 template <typename T>
 inline vuint32m2_t

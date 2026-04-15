@@ -55,6 +55,8 @@ namespace pcl {
   *   compare e.g. `vlsseg3e32` vs 3×`vlse32`, or `vluxseg3ei32` vs 3×`vluxei32`, fairly.
   * - **Dispatch (`strided_load3_f32m2`, `indexed_load3_f32m2`)** choose seg vs fields at compile time
   *   when x/y/z are consecutive in memory.
+  * - **Point traits** (`RVVCoordScalar`, `kRVVXYZPointCompatible`) in the implementation header gate
+  *   `offsetof(PointT, x|y|z)` + float RVV paths; they align with the \c static_assert checks on stride/alignment.
   * - **3× indexed gather** (no segment instruction) is **`indexed_load3_fields_f32m2`**.
   * - **`gather_load_f32m2`** implements single-field `vluxei32` (indexed gather).
   *
