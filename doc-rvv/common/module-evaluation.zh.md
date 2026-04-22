@@ -13,14 +13,14 @@
 ## 1. 优先处理
 
 
-| 目标             | 路径                           | 说明                                                                                                                                                                                                                 |
-| -------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 点云变换           | `impl/transforms.hpp`        | `transformPointCloud`、`transformPointCloudWithNormals`、`PointXY` 仿射等：外层对 `cloud.size()` 线性遍历；`detail::Transformer` 在 x86 上已有 SSE2/AVX 特化，RISC-V 可补 RVV 版矩阵-向量与批量点变换。`is_dense == false` 时需按 NaN 跳过，实现比 dense 分支复杂。 |
-| 质心 / 协方差 / 去均值 | `impl/centroid.hpp`          | `compute3DCentroid` 多重重载、`demeanPointCloud` 等：对点或 `indices` 的 `for`/`while`。与 `common.hpp` 已做条目同属点云规约，函数面更大（indices、非有限点分支）。                                                                                       |
-| 可分离高斯卷积        | `impl/gaussian.hpp`          | `convolveRows` / `convolveCols`：行/列二重循环，内层为核权乘加。核宽较小时需注意条带启动与尾部标量收尾成本。                                                                                                                                             |
-| 最远点对           | `distances.h`（无对应 `impl/`）   | `getMaxSegment`：对全云或 `indices` 的 O(n²) 双重循环，内层为平方距离与取最大。可向量化「固定 `i`、扫描 `j`」的内层，或先改算法再考虑 SIMD。同文件内 `sqrPointToLineDistance`、`squaredEuclideanDistance` 等为单次或小批量运算，优先级低于 `getMaxSegment`。                            |
-| 向量范数           | `impl/norms.hpp`             | `L1_Norm`、`L2_Norm_SQR`、`Linf_Norm` 等在 `dim` 上循环。`dim` 较大时 RVV 更有意义；`dim` 常为 3～数十时需 bench 验证。`CS_Norm`、`Div_Norm`、`KL_Norm` 等分支多、含 `log` 与除法，可先只做 L1 / L2² / Linf。                                                 |
-| 投影矩阵估计         | `impl/projection_matrix.hpp` | `estimateProjectionMatrix`：对点集累加对称块统计量，循环体以乘加为主；含 `isfinite` 与像素索引推导，测试需与标量路径对齐。                                                                                                                                   |
+| 目标             | 路径                                | 说明                                                                                                                                                                                                                 |
+| -------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 点云变换           | `impl/transforms.hpp`             | `transformPointCloud`、`transformPointCloudWithNormals`、`PointXY` 仿射等：外层对 `cloud.size()` 线性遍历；`detail::Transformer` 在 x86 上已有 SSE2/AVX 特化，RISC-V 可补 RVV 版矩阵-向量与批量点变换。`is_dense == false` 时需按 NaN 跳过，实现比 dense 分支复杂。 |
+| 质心 / 协方差 / 去均值 | `impl/centroid.hpp`               | `compute3DCentroid` 多重重载、`demeanPointCloud` 等：对点或 `indices` 的 `for`/`while`。与 `common.hpp` 已做条目同属点云规约，函数面更大（indices、非有限点分支）。                                                                                       |
+| 可分离高斯卷积        | `common/src/gaussian.cpp`（见 §3.4） | `PointCloud<float>` 的 `convolveRows` / `convolveCols`：`__RVV10__` 构建下为条带化 RVV 实现；核宽较小时条带启动与尾部仍有开销。`impl/gaussian.hpp` 中模板 + `std::function` 路径本仓库不做 RVV，见 §3.4。                                                    |
+| 最远点对           | `distances.h`（无对应 `impl/`）        | `getMaxSegment`：对全云或 `indices` 的 O(n²) 双重循环，内层为平方距离与取最大。可向量化「固定 `i`、扫描 `j`」的内层，或先改算法再考虑 SIMD。同文件内 `sqrPointToLineDistance`、`squaredEuclideanDistance` 等为单次或小批量运算，优先级低于 `getMaxSegment`。                            |
+| 向量范数           | `impl/norms.hpp`                  | `L1_Norm`、`L2_Norm_SQR`、`Linf_Norm` 等在 `dim` 上循环。`dim` 较大时 RVV 更有意义；`dim` 常为 3～数十时需 bench 验证。`CS_Norm`、`Div_Norm`、`KL_Norm` 等分支多、含 `log` 与除法，可先只做 L1 / L2² / Linf。                                                 |
+| 投影矩阵估计         | `impl/projection_matrix.hpp`      | `estimateProjectionMatrix`：对点集累加对称块统计量，循环体以乘加为主；含 `isfinite` 与像素索引推导，测试需与标量路径对齐。                                                                                                                                   |
 
 
 ---
@@ -36,7 +36,7 @@
 | `impl/angles.hpp`                              | 单标量角度换算，无数组级循环。                            |
 | `impl/bivariate_polynomial.hpp`                | 低次、短循环，控制流多。                               |
 | `impl/copy_point.hpp`                          | `memcpy` 或编译期字段拷贝。                         |
-| `impl/eigen.hpp`                               | 见第 5 节。                                    |
+| `impl/eigen.hpp`                               | 见第 3 节。                                    |
 | `impl/file_io.hpp`                             | 目录与路径字符串。                                  |
 | `impl/generate.hpp`                            | 随机填充，时间多在 RNG。                             |
 | `impl/intensity.hpp`                           | 单点强度访问器；无批量 API 时文件级 RVV 意义有限。             |
@@ -44,7 +44,7 @@
 | `impl/io.hpp`                                  | 元数据、`copyPointCloud` 逐点逻辑。                 |
 | `impl/pca.hpp`                                 | 大块在 Eigen 矩阵与特征解算。                         |
 | `impl/piecewise_linear_function.hpp`           | 单次插值查询。                                    |
-| `impl/polynomial_calculations.hpp`             | 见第 6 节。                                    |
+| `impl/polynomial_calculations.hpp`             | 见第 3 节。                                    |
 | `impl/random.hpp`                              | RNG。                                       |
 | `impl/spring.hpp`                              | 容器 `insert` / 扩容，内存与搬运为主。                  |
 | `impl/transformation_from_correspondences.hpp` | 增量 3×3 与末尾 `JacobiSVD`。                    |
@@ -91,4 +91,12 @@
 - 求根系列（`solveLinear`～`solveQuartic`）：单次多项式、分支与 `pow` / `cbrt` / `acos` 等，无「一次处理 K 个独立实例」的数组接口，与 RVV 常见用法不匹配。
 - `bivariatePolynomialApproximation`：对每个样本构造基向量 `C` 并累加 `A`、`b`；维数随阶数变化，上三角累加；末尾 `A.inverse() * b`。静态阅读下，维数升高时开销常落在稠密求逆，而非内层乘加循环 alone。
 - 结论：求根路径不做 RVV 优先。拟合路径若需优化，应先评估用 Cholesky / `ldlt` 等替代显式 `inverse()`，再对热点循环做 bench；必要时再考虑 SIMD / RVV。
+
+---
+
+### 3.4 `common/src/gaussian.cpp` 与 `impl/gaussian.hpp`
+
+- 随 `libpcl_common` 链接的 float 专版：`pcl::GaussianKernel::convolveRows` / `convolveCols`（`PointCloud<float>`）在 `common/src/gaussian.cpp`。表 1「可分离高斯卷积」的 bench / 单测与 RVV 工作范围仅指该 TU；修改后需重编并安装 `pcl_common`（或按构建文档增量替换 `libpcl_common.so`*），bench 才会反映新代码。实现与数据说明见 `doc-rvv/common/gaussian.zh.md`；筛选结论见 `test-rvv/common/gaussian/gaussian-evaluation.zh.md`。
+- `impl/gaussian.hpp`：模板 `convolveRows` / `convolveCols` 对任意 `PointT` 经 `std::function` 逐点取标量，内层无法对通用 `PointT` 假设连续 `float` 向量访存；本仓库当前决定不对该头文件路径做 RVV 扩展，维持标量实现。
+- `compute`（生成一维核）：仍在 `gaussian.cpp`，标量实现；无计划在本周期内 RVV 化。
 
