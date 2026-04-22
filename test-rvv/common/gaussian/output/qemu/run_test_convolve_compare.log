@@ -1,0 +1,14 @@
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from PCL
+[ RUN      ] PCL.gaussian_float_convolveRows_std_vs_rvv
+[       OK ] PCL.gaussian_float_convolveRows_std_vs_rvv (2 ms)
+[ RUN      ] PCL.gaussian_float_convolveCols_std_vs_rvv
+[       OK ] PCL.gaussian_float_convolveCols_std_vs_rvv (1 ms)
+[ RUN      ] PCL.gaussian_float_separable_rows_then_cols_std_vs_rvv
+[       OK ] PCL.gaussian_float_separable_rows_then_cols_std_vs_rvv (1 ms)
+[----------] 3 tests from PCL (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (9 ms total)
+[  PASSED  ] 3 tests.

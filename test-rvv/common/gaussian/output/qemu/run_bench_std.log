@@ -1,0 +1,21 @@
+make[1]: 进入目录“/home/zoomin/codes/RISCV/workspace/pcl/test-rvv/common/gaussian”
+rm -rf build/riscv/bench_gaussian
+[BUILD] Compiling Benchmark (riscv)...
+riscv64-unknown-linux-gnu-g++ -std=c++17 -O3 -g -march=rv64gcv -mabi=lp64d -fopt-info-vec-missed=log/vec_missed_log/vec_missed_2026-04-20_11-23-09.log -DPCL_SILENCE_MALLOC_WARNING=1 -DEIGEN_RISCV64_USE_RVV10 -march=rv64gcv_zvl256b -mrvv-vector-bits=zvl -DPCL_NO_PRECOMPILE -I/home/zoomin/codes/RISCV/workspace/pcl/common/include -I/home/zoomin/codes/RISCV/workspace/pcl/test/include -I/home/zoomin/codes/RISCV/workspace/pcl -I/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/include/pcl-1.15 -I/home/zoomin/codes/RISCV/workspace/riscv/eigen-rvv/include/eigen3 -I/home/zoomin/codes/RISCV/workspace/riscv/boost/include -I/home/zoomin/codes/RISCV/workspace/riscv/gtest/include -I/home/zoomin/codes/RISCV/workspace/riscv/zlib/include -I/home/zoomin/codes/RISCV/workspace/riscv/libpng/include  bench_gaussian.cpp -L/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib -L/home/zoomin/codes/RISCV/workspace/riscv/boost/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/boost/lib -L/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib -L/home/zoomin/codes/RISCV/workspace/riscv/zlib/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/zlib/lib -L/home/zoomin/codes/RISCV/workspace/riscv/libpng/lib -Wl,-rpath-link=/home/zoomin/codes/RISCV/workspace/riscv/libpng/lib  -lpcl_common -lm -o build/riscv/bench_gaussian_std
+[RUN] Benchmark on riscv (USE_PCL_RVV10=0)...
+LD_LIBRARY_PATH=/home/zoomin/codes/RISCV/workspace/riscv/pcl-rvv/lib:/home/zoomin/codes/RISCV/workspace/riscv/boost/lib:/home/zoomin/codes/RISCV/workspace/riscv/gtest/lib:/home/zoomin/codes/RISCV/workspace/riscv/zlib/lib:/home/zoomin/codes/RISCV/workspace/riscv/libpng/lib:$LD_LIBRARY_PATH qemu-riscv64 -L /opt/riscv64/sysroot -cpu rv64,v=true,vlen=256,elen=64 ./build/riscv/bench_gaussian_std
+==============================================================================================================
+ PCL gaussian.cpp Benchmark (GaussianKernel non-template members)
+ Image Size: 960 x 540
+ Iterations: 10
+ Dataset: random [0,1] float image; sigma=5 for compute + convolve
+ Args: WIDTH HEIGHT ITERS SIGMA (omit for quick defaults; e.g. 1920 1080 20 5 for full HD)
+ Note: timings use symbols from libpcl_common (rebuild after editing gaussian.cpp)
+ build: __RVV10__ NOT defined
+==============================================================================================================
+compute(sigma, kernel) [gaussian.cpp]               : 0.0476 ms/iter
+convolveRows (PointCloud<float>) [gaussian.cpp]     : 102.7517 ms/iter
+convolveCols (PointCloud<float>) [gaussian.cpp]     : 99.9230 ms/iter
+convolveRows then convolveCols [gaussian.cpp x2]    : 211.3705 ms/iter
+==============================================================================================================
+make[1]: 离开目录“/home/zoomin/codes/RISCV/workspace/pcl/test-rvv/common/gaussian”

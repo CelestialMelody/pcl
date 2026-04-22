@@ -1,0 +1,18 @@
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from PCL
+[ RUN      ] PCL.GaussianKernel_compute_golden
+[       OK ] PCL.GaussianKernel_compute_golden (2 ms)
+[ RUN      ] PCL.GaussianKernel_convolveRows_float_constant
+[       OK ] PCL.GaussianKernel_convolveRows_float_constant (1 ms)
+[ RUN      ] PCL.GaussianKernel_convolveCols_float_constant
+[       OK ] PCL.GaussianKernel_convolveCols_float_constant (1 ms)
+[ RUN      ] PCL.GaussianKernel_convolveRows_float_reference
+[       OK ] PCL.GaussianKernel_convolveRows_float_reference (1 ms)
+[ RUN      ] PCL.GaussianKernel_convolveRows_inplace_alias
+[       OK ] PCL.GaussianKernel_convolveRows_inplace_alias (0 ms)
+[----------] 5 tests from PCL (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (12 ms total)
+[  PASSED  ] 5 tests.

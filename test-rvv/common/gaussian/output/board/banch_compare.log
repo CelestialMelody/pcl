@@ -1,0 +1,70 @@
+❯ make run_bench_std
+[BOARD] Benchmark Std -> /root/pcl-test/common/gaussian/output/run_bench_std.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/gaussian/bench_gaussian_std 2>&1 | tee /root/pcl-test/common/gaussian/output/run_bench_std.log
+==============================================================================================================
+ PCL gaussian.cpp Benchmark (GaussianKernel non-template members)
+ Image Size: 960 x 540
+ Iterations: 10
+ Dataset: random [0,1] float image; sigma=5 for compute + convolve
+ Args: WIDTH HEIGHT ITERS SIGMA (omit for quick defaults; e.g. 1920 1080 20 5 for full HD)
+ Note: timings use symbols from libpcl_common (rebuild after editing gaussian.cpp)
+ build: __RVV10__ NOT defined
+==============================================================================================================
+compute(sigma, kernel) [gaussian.cpp]               : 0.0062 ms/iter
+convolveRows (PointCloud<float>) [gaussian.cpp]     : 53.6127 ms/iter
+convolveCols (PointCloud<float>) [gaussian.cpp]     : 105.7745 ms/iter
+convolveRows then convolveCols [gaussian.cpp x2]    : 160.0322 ms/iter
+==============================================================================================================
+❯ make run_bench_rvv
+[BOARD] Benchmark RVV -> /root/pcl-test/common/gaussian/output/run_bench_rvv.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/gaussian/bench_gaussian_rvv 2>&1 | tee /root/pcl-test/common/gaussian/output/run_bench_rvv.log
+==============================================================================================================
+ PCL gaussian.cpp Benchmark (GaussianKernel non-template members)
+ Image Size: 960 x 540
+ Iterations: 10
+ Dataset: random [0,1] float image; sigma=5 for compute + convolve
+ Args: WIDTH HEIGHT ITERS SIGMA (omit for quick defaults; e.g. 1920 1080 20 5 for full HD)
+ Note: timings use symbols from libpcl_common (rebuild after editing gaussian.cpp)
+ build: __RVV10__ defined
+==============================================================================================================
+compute(sigma, kernel) [gaussian.cpp]               : 0.0062 ms/iter
+convolveRows (PointCloud<float>) [gaussian.cpp]     : 6.3381 ms/iter
+convolveCols (PointCloud<float>) [gaussian.cpp]     : 42.4242 ms/iter
+convolveRows then convolveCols [gaussian.cpp x2]    : 48.7031 ms/iter
+==============================================================================================================
+❯ make analyze_bench_compare
+python3 '/root/pcl-test/common/gaussian/script/analyze_bench_compare.py' \
+        --std-log /root/pcl-test/common/gaussian/output/run_bench_std.log \
+        --rvv-log /root/pcl-test/common/gaussian/output/run_bench_rvv.log \
+        --device "Milkv-Jupiter" \
+        --vlen-desc "see SoC / ELF (board)" \
+
+==============================================================================================================
+ PCL gaussian.cpp Benchmark (GaussianKernel non-template members) (Std vs RVV)
+==============================================================================================================
+[Benchmark Context]
+  Device    : Milkv-Jupiter
+  VLEN      : see SoC / ELF (board)
+  Dataset   : random [0,1] float image; sigma=5 for compute + convolve
+  Iterations: 10 （每行 Total = Avg × 10）
+  Std log   : /root/pcl-test/common/gaussian/output/run_bench_std.log
+  RVV log   : /root/pcl-test/common/gaussian/output/run_bench_rvv.log
+
+--------------------------------------------------------------------------------------------------------------
+Benchmark Item                                    | Impl   |       Avg Time |     Total Time |        Speedup
+--------------------------------------------------|--------|----------------|----------------|----------------
+compute(sigma, kernel) [gaussian.cpp]             | Std    |      0.0062 ms |      0.0620 ms |    [   1.00x ]
+                                                  | RVV    |      0.0062 ms |      0.0620 ms |    [   1.00x ]
+--------------------------------------------------|--------|----------------|----------------|----------------
+convolveRows (PointCloud<float>) [gaussian.cpp]   | Std    |     53.6127 ms |    536.1270 ms |    [   1.00x ]
+                                                  | RVV    |      6.3381 ms |     63.3810 ms |    [   8.46x ]
+--------------------------------------------------|--------|----------------|----------------|----------------
+convolveCols (PointCloud<float>) [gaussian.cpp]   | Std    |    105.7745 ms |   1057.7450 ms |    [   1.00x ]
+                                                  | RVV    |     42.4242 ms |    424.2420 ms |    [   2.49x ]
+--------------------------------------------------|--------|----------------|----------------|----------------
+convolveRows then convolveCols [gaussian.cpp x2]  | Std    |    160.0322 ms |   1600.3220 ms |    [   1.00x ]
+                                                  | RVV    |     48.7031 ms |    487.0310 ms |    [   3.29x ]
+--------------------------------------------------|--------|----------------|----------------|----------------
+==============================================================================================================
