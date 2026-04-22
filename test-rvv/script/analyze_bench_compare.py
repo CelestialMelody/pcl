@@ -121,10 +121,10 @@ def extract_iterations(text: str) -> int | None:
     从日志中提取迭代次数。
 
     兼容：
-      - structured 风格：`Iterations: N`
+      - structured 风格：`Iterations: N`（独占一行）
       - 常见缩写/变体：Iter / Iters / iteration / iterations / iter(s)
     """
-    # 允许大小写混用；允许 Iter / Iters / Iteration / Iterations 等。
+    # 独占一行：Iterations: / iter: 等
     m = re.search(
         r"^\s*(?:iters?|iter(?:ation)?s?)\s*:\s*(\d+)\s*$",
         text,
