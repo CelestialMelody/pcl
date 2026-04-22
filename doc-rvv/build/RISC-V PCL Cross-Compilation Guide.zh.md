@@ -454,12 +454,15 @@ echo "--------------------------------------"
 # === 1. 环境准备 ===
 export RV_INSTALL_DIR=
 export RISCV_TOOLCHAIN=
+export PCL_WORKSPACE=
 
 export RV_CC="${RISCV_TOOLCHAIN}/bin/riscv64-unknown-linux-gnu-gcc"
 export RV_CXX="${RISCV_TOOLCHAIN}/bin/riscv64-unknown-linux-gnu-g++"
 export VLEN=256
 export DEFAULT_LMUL=2
+
 export EIGEN_ARCH_FLAGS="-mrvv-vector-bits=zvl -DEIGEN_RISCV64_USE_RVV10 -DEIGEN_RISCV64_DEFAULT_LMUL=${DEFAULT_LMUL}"
+# -D__RVV10__ 进入 common/src/gaussian.cpp 等 TU 的 RVV 分支；去掉则卷积走标量路径。对比两套库时需各编一次。
 export ARCH_FLAGS="-march=rv64gcv_zvl${VLEN}b -mabi=lp64d -O3 -D__RVV10__"
 export EXTRA_INCLUDES="-I${RV_INSTALL_DIR}/boost/include \
                        -I${RV_INSTALL_DIR}/eigen-rvv/include/eigen3 \
@@ -469,7 +472,7 @@ export EXTRA_INCLUDES="-I${RV_INSTALL_DIR}/boost/include \
                        -I${RV_INSTALL_DIR}/libpng/include"
 
 # === 2. 进入源码目录 ===
-cd /home/zoomin/codes/RISCV/workspace/pcl
+cd ${PCL_WORKSPACE}
 rm -rf build && mkdir build && cd build
 
 # === 3. 配置阶段 ===
@@ -515,3 +518,90 @@ file ${RV_INSTALL_DIR}/pcl-rvv/lib/libpcl_common.so.1.15.1.99
 echo "--------------------------------------"
 
 ```
+
+## 10. 增量重编 pcl 模块
+
+以 `pcl_common` 为例，仅修改 `common` 下个别源文件（例如 `common/src/gaussian.cpp`）时，可以只构建目标 `pcl_common`，并把生成的 `libpcl_common.so*` 拷贝到安装前缀的 `lib` 目录，从而避免 `make install` 依赖整棵安装树或触发不必要的工作。
+
+首次在本机建立 `build` 目录时仍需执行与上一节一致的 `cmake`；之后若未改 CMake 选项，可在 `build` 目录内直接 `make pcl_common`，无需每次重新配置。
+
+下面脚本与上一节使用相同的交叉工具链、`__RVV10__`、Eigen RVV 与依赖路径变量；请将 `RV_INSTALL_DIR`、`RISCV_TOOLCHAIN` 以及 `cd` 到 PCL 源码的路径改成你的环境。
+
+若 `file` 检查的 `.so` 版本号与当前 PCL 不一致，请按 `ls ${RV_INSTALL_DIR}/pcl-rvv/lib/libpcl_common.so*` 实际名称修改。
+
+```bash
+#!/usr/bin/env bash
+# 增量重编 PCL
+
+set -euo pipefail
+
+# === 1. 环境准备 ===
+export RV_INSTALL_DIR=
+export RISCV_TOOLCHAIN=
+export PCL_WORKSPACE=
+
+export RV_CC="${RISCV_TOOLCHAIN}/bin/riscv64-unknown-linux-gnu-gcc"
+export RV_CXX="${RISCV_TOOLCHAIN}/bin/riscv64-unknown-linux-gnu-g++"
+export VLEN=256
+export DEFAULT_LMUL=2
+
+export EIGEN_ARCH_FLAGS="-mrvv-vector-bits=zvl -DEIGEN_RISCV64_USE_RVV10 -DEIGEN_RISCV64_DEFAULT_LMUL=${DEFAULT_LMUL}"
+# 与第 9 节相同：保留 -D__RVV10__ 则 gaussian.cpp 卷积进 RVV；去掉后重装/拷贝的 lib 内为标量卷积。改 ARCH_FLAGS 后须重新 cmake 或清缓存再配置，再 make pcl_common。
+export ARCH_FLAGS="-march=rv64gcv_zvl${VLEN}b -mabi=lp64d -O3 -D__RVV10__"
+# 标量卷积库示例（仅此注释，使用时替换上一行）： export ARCH_FLAGS="-march=rv64gcv_zvl${VLEN}b -mabi=lp64d -O3"
+export EXTRA_INCLUDES="-I${RV_INSTALL_DIR}/boost/include \
+                       -I${RV_INSTALL_DIR}/eigen-rvv/include/eigen3 \
+                       -I${RV_INSTALL_DIR}/flann/include \
+                       -I${RV_INSTALL_DIR}/lz4/include \
+                       -I${RV_INSTALL_DIR}/hdf5/include \
+                       -I${RV_INSTALL_DIR}/libpng/include"
+
+# === 2. 构建目录 ===
+cd ${PCL_WORKSPACE}
+mkdir -p build && cd build
+
+# === 3. 配置 ===
+cmake .. \
+  -DCMAKE_SYSTEM_NAME=Linux \
+  -DCMAKE_SYSTEM_PROCESSOR=riscv64 \
+  -DCMAKE_C_COMPILER="${RV_CC}" \
+  -DCMAKE_CXX_COMPILER="${RV_CXX}" \
+  -DCMAKE_INSTALL_PREFIX="${RV_INSTALL_DIR}/pcl-rvv" \
+  -DCMAKE_PREFIX_PATH="${RV_INSTALL_DIR}/zlib;${RV_INSTALL_DIR}/libpng;${RV_INSTALL_DIR}/lz4;${RV_INSTALL_DIR}/hdf5;${RV_INSTALL_DIR}/flann;${RV_INSTALL_DIR}/eigen-rvv;${RV_INSTALL_DIR}/boost" \
+  -DCMAKE_LIBRARY_PATH="${RV_INSTALL_DIR}/lz4/lib;${RV_INSTALL_DIR}/zlib/lib;${RV_INSTALL_DIR}/hdf5/lib;${RV_INSTALL_DIR}/boost/lib;${RV_INSTALL_DIR}/flann/lib" \
+  -DCMAKE_FIND_ROOT_PATH="${RV_INSTALL_DIR}/boost;${RV_INSTALL_DIR}/eigen-rvv;${RV_INSTALL_DIR}/flann;${RV_INSTALL_DIR}/lz4;${RV_INSTALL_DIR}/hdf5" \
+  -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+  -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH \
+  -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH \
+  -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
+  -DBOOST_ROOT="${RV_INSTALL_DIR}/boost" \
+  -DEigen3_DIR="${RV_INSTALL_DIR}/eigen-rvv/share/eigen3/cmake" \
+  -DCMAKE_CXX_FLAGS="${ARCH_FLAGS} ${EIGEN_ARCH_FLAGS} ${EXTRA_INCLUDES}" \
+  -DCMAKE_EXE_LINKER_FLAGS="-L${RV_INSTALL_DIR}/boost/lib -L${RV_INSTALL_DIR}/lz4/lib -L${RV_INSTALL_DIR}/hdf5/lib -L${RV_INSTALL_DIR}/libpng/lib -L${RV_INSTALL_DIR}/zlib/lib -L${RV_INSTALL_DIR}/flann/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/boost/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/lz4/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/hdf5/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/flann/lib" \
+  -DCMAKE_SHARED_LINKER_FLAGS="-L${RV_INSTALL_DIR}/boost/lib -L${RV_INSTALL_DIR}/lz4/lib -L${RV_INSTALL_DIR}/hdf5/lib -L${RV_INSTALL_DIR}/libpng/lib -L${RV_INSTALL_DIR}/zlib/lib -L${RV_INSTALL_DIR}/flann/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/boost/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/lz4/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/hdf5/lib \
+    -Wl,-rpath-link=${RV_INSTALL_DIR}/flann/lib" \
+  -DPCL_ENABLE_SSE=OFF -DPCL_ENABLE_AVX=OFF \
+  -DWITH_CUDA=OFF -DWITH_OPENGL=OFF -DWITH_LIBUSB=OFF -DWITH_PCAP=OFF -DWITH_QT=OFF -DWITH_VTK=OFF \
+  -DCMAKE_POLICY_DEFAULT_CMP0144=NEW
+
+# === 4. 编译与安装 ===
+make -j16 pcl_common
+# 勿用 make install：会依赖整棵安装树并触发全量编译
+install -d "${RV_INSTALL_DIR}/pcl-rvv/lib"
+cp -a lib/libpcl_common.so* "${RV_INSTALL_DIR}/pcl-rvv/lib/"
+echo "[INFO] 已仅更新 ${RV_INSTALL_DIR}/pcl-rvv/lib/libpcl_common.so*"
+
+# === 5. 验证 ===
+echo "--------------------------------------"
+echo "验证 PCL 核心库格式："
+file "${RV_INSTALL_DIR}/pcl-rvv/lib/libpcl_common.so.1.15.1.99"
+echo "--------------------------------------"
+```
+
