@@ -1,0 +1,99 @@
+❯ make run_bench_compare
+[BOARD] Benchmark Std -> /root/pcl-test/common/centroid/output/run_bench_std.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/centroid/bench_centroid_std 2>&1 | tee /root/pcl-test/common/centroid/output/run_bench_std.log
+==============================================================================================================
+ PCL centroid.hpp Benchmark
+ Cloud size: 1000000
+ Iterations: 20
+ Dataset: points=1000000 seed=42
+ build: __RVV10__ NOT defined
+==============================================================================================================
+compute3DCentroid (cloud)                           : 5.0541 ms/iter
+compute3DCentroid (indices)                         : 10.5973 ms/iter
+computeMeanAndCovarianceMatrix (cloud)              : 17.9383 ms/iter
+computeMeanAndCovarianceMatrix (indices)            : 21.6620 ms/iter
+computeCovarianceMatrix (cloud, given centroid)     : 15.6358 ms/iter
+computeCovarianceMatrix (indices, given centroid)   : 16.8729 ms/iter
+computeCovarianceMatrix (cloud, about origin)       : 10.4723 ms/iter
+computeCovarianceMatrix (indices, about origin)     : 17.1524 ms/iter
+demeanPointCloud (cloud -> PointCloud)              : 17.1303 ms/iter
+demeanPointCloud (indices -> PointCloud)            : 15.9871 ms/iter
+demeanPointCloud (cloud -> Eigen 4xN)               : 17.5953 ms/iter
+==============================================================================================================
+[BOARD] Benchmark RVV -> /root/pcl-test/common/centroid/output/run_bench_rvv.log
+LD_LIBRARY_PATH=/root/pcl-test/lib:$LD_LIBRARY_PATH \
+/root/pcl-test/common/centroid/bench_centroid_rvv 2>&1 | tee /root/pcl-test/common/centroid/output/run_bench_rvv.log
+==============================================================================================================
+ PCL centroid.hpp Benchmark
+ Cloud size: 1000000
+ Iterations: 20
+ Dataset: points=1000000 seed=42
+ build: __RVV10__ defined
+==============================================================================================================
+compute3DCentroid (cloud)                           : 2.4246 ms/iter
+compute3DCentroid (indices)                         : 4.0369 ms/iter
+computeMeanAndCovarianceMatrix (cloud)              : 2.8763 ms/iter
+computeMeanAndCovarianceMatrix (indices)            : 4.4339 ms/iter
+computeCovarianceMatrix (cloud, given centroid)     : 2.7710 ms/iter
+computeCovarianceMatrix (indices, given centroid)   : 4.2656 ms/iter
+computeCovarianceMatrix (cloud, about origin)       : 2.6889 ms/iter
+computeCovarianceMatrix (indices, about origin)     : 4.0728 ms/iter
+demeanPointCloud (cloud -> PointCloud)              : 11.2783 ms/iter
+demeanPointCloud (indices -> PointCloud)            : 12.4232 ms/iter
+demeanPointCloud (cloud -> Eigen 4xN)               : 15.1959 ms/iter
+==============================================================================================================
+python3 '/root/pcl-test/common/centroid/script/analyze_bench_compare.py' \
+        --std-log /root/pcl-test/common/centroid/output/run_bench_std.log \
+        --rvv-log /root/pcl-test/common/centroid/output/run_bench_rvv.log \
+        --device "Milkv-Jupiter" \
+        --vlen-desc "see SoC / ELF (board)" \
+
+===============================================================================================================
+ PCL centroid.hpp Benchmark (Std vs RVV)
+===============================================================================================================
+[Benchmark Context]
+  Device    : Milkv-Jupiter
+  VLEN      : see SoC / ELF (board)
+  Dataset   : points=1000000 seed=42
+  Iterations: 20 （每行 Total = Avg × 20）
+  Std log   : /root/pcl-test/common/centroid/output/run_bench_std.log
+  RVV log   : /root/pcl-test/common/centroid/output/run_bench_rvv.log
+
+---------------------------------------------------------------------------------------------------------------
+Benchmark Item                                     | Impl   |       Avg Time |     Total Time |        Speedup
+---------------------------------------------------|--------|----------------|----------------|----------------
+compute3DCentroid (cloud)                          | Std    |      5.0541 ms |    101.0820 ms |    [   1.00x ]
+                                                   | RVV    |      2.4246 ms |     48.4920 ms |    [   2.08x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+compute3DCentroid (indices)                        | Std    |     10.5973 ms |    211.9460 ms |    [   1.00x ]
+                                                   | RVV    |      4.0369 ms |     80.7380 ms |    [   2.63x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+computeMeanAndCovarianceMatrix (cloud)             | Std    |     17.9383 ms |    358.7660 ms |    [   1.00x ]
+                                                   | RVV    |      2.8763 ms |     57.5260 ms |    [   6.24x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+computeMeanAndCovarianceMatrix (indices)           | Std    |     21.6620 ms |    433.2400 ms |    [   1.00x ]
+                                                   | RVV    |      4.4339 ms |     88.6780 ms |    [   4.89x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+computeCovarianceMatrix (cloud, given centroid)    | Std    |     15.6358 ms |    312.7160 ms |    [   1.00x ]
+                                                   | RVV    |      2.7710 ms |     55.4200 ms |    [   5.64x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+computeCovarianceMatrix (indices, given centroid)  | Std    |     16.8729 ms |    337.4580 ms |    [   1.00x ]
+                                                   | RVV    |      4.2656 ms |     85.3120 ms |    [   3.96x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+computeCovarianceMatrix (cloud, about origin)      | Std    |     10.4723 ms |    209.4460 ms |    [   1.00x ]
+                                                   | RVV    |      2.6889 ms |     53.7780 ms |    [   3.89x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+computeCovarianceMatrix (indices, about origin)    | Std    |     17.1524 ms |    343.0480 ms |    [   1.00x ]
+                                                   | RVV    |      4.0728 ms |     81.4560 ms |    [   4.21x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+demeanPointCloud (cloud -> PointCloud)             | Std    |     17.1303 ms |    342.6060 ms |    [   1.00x ]
+                                                   | RVV    |     11.2783 ms |    225.5660 ms |    [   1.52x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+demeanPointCloud (indices -> PointCloud)           | Std    |     15.9871 ms |    319.7420 ms |    [   1.00x ]
+                                                   | RVV    |     12.4232 ms |    248.4640 ms |    [   1.29x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+demeanPointCloud (cloud -> Eigen 4xN)              | Std    |     17.5953 ms |    351.9060 ms |    [   1.00x ]
+                                                   | RVV    |     15.1959 ms |    303.9180 ms |    [   1.16x ]
+---------------------------------------------------|--------|----------------|----------------|----------------
+===============================================================================================================

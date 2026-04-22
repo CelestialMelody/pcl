@@ -1,0 +1,54 @@
+[==========] Running 23 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 23 tests from PCL
+[ RUN      ] PCL.compute3DCentroidFloat
+[       OK ] PCL.compute3DCentroidFloat (2 ms)
+[ RUN      ] PCL.compute3DCentroidDouble
+[       OK ] PCL.compute3DCentroidDouble (1 ms)
+[ RUN      ] PCL.compute3DCentroidCloudIterator
+[       OK ] PCL.compute3DCentroidCloudIterator (1 ms)
+[ RUN      ] PCL.compute3DCentroid_dense
+[       OK ] PCL.compute3DCentroid_dense (0 ms)
+[ RUN      ] PCL.compute3DCentroid_indices
+[       OK ] PCL.compute3DCentroid_indices (0 ms)
+[ RUN      ] PCL.compute3DCentroid_dense_rvvMinPoints
+[       OK ] PCL.compute3DCentroid_dense_rvvMinPoints (0 ms)
+[ RUN      ] PCL.compute3DCentroid_indices_rvvMinPoints
+[       OK ] PCL.compute3DCentroid_indices_rvvMinPoints (0 ms)
+[ RUN      ] PCL.computeCovarianceMatrix
+[       OK ] PCL.computeCovarianceMatrix (1 ms)
+[ RUN      ] PCL.computeCovarianceMatrixNormalized
+[       OK ] PCL.computeCovarianceMatrixNormalized (1 ms)
+[ RUN      ] PCL.computeDemeanedCovariance
+[       OK ] PCL.computeDemeanedCovariance (1 ms)
+[ RUN      ] PCL.computeCovarianceMatrix_given_centroid_rvvMinPoints
+[       OK ] PCL.computeCovarianceMatrix_given_centroid_rvvMinPoints (0 ms)
+[ RUN      ] PCL.computeCovarianceMatrix_given_centroid_indices_rvvMinPoints
+[       OK ] PCL.computeCovarianceMatrix_given_centroid_indices_rvvMinPoints (0 ms)
+[ RUN      ] PCL.computeCovarianceMatrixNormalized_given_centroid_rvvMinPoints
+[       OK ] PCL.computeCovarianceMatrixNormalized_given_centroid_rvvMinPoints (0 ms)
+[ RUN      ] PCL.computeCovarianceMatrix_aboutOrigin_rvvMinPoints
+[       OK ] PCL.computeCovarianceMatrix_aboutOrigin_rvvMinPoints (0 ms)
+[ RUN      ] PCL.computeCovarianceMatrix_aboutOrigin_indices_rvvMinPoints
+[       OK ] PCL.computeCovarianceMatrix_aboutOrigin_indices_rvvMinPoints (0 ms)
+[ RUN      ] PCL.computeMeanAndCovariance
+[       OK ] PCL.computeMeanAndCovariance (1 ms)
+[ RUN      ] PCL.computeMeanAndCovarianceMatrix_dense_rvvMinPoints
+[       OK ] PCL.computeMeanAndCovarianceMatrix_dense_rvvMinPoints (0 ms)
+[ RUN      ] PCL.computeMeanAndCovarianceMatrix_indices_rvvMinPoints
+[       OK ] PCL.computeMeanAndCovarianceMatrix_indices_rvvMinPoints (0 ms)
+[ RUN      ] PCL.demeanPointCloud_dense
+[       OK ] PCL.demeanPointCloud_dense (0 ms)
+[ RUN      ] PCL.demeanPointCloud_dup16_dense
+[       OK ] PCL.demeanPointCloud_dup16_dense (0 ms)
+[ RUN      ] PCL.demeanPointCloud_indices_dup16_dense
+[       OK ] PCL.demeanPointCloud_indices_dup16_dense (0 ms)
+[ RUN      ] PCL.demeanPointCloud_eigen4x_dyn_dup16_dense
+[       OK ] PCL.demeanPointCloud_eigen4x_dyn_dup16_dense (0 ms)
+[ RUN      ] PCL.compute3DCentroid_bun0_loadPCDFile
+[       OK ] PCL.compute3DCentroid_bun0_loadPCDFile (0 ms)
+[----------] 23 tests from PCL (18 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 1 test suite ran. (21 ms total)
+[  PASSED  ] 23 tests.
