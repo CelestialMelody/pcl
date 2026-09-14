@@ -37,6 +37,7 @@
 
 #include <pcl/recognition/dotmod.h>
 
+#include <algorithm>
 #include <fstream>
 
 
@@ -147,11 +148,12 @@ detectTemplates (const std::vector<DOTModality*> & modalities,
   //std::cerr << "2" << std::endl;
 
   float best_response = 0.0f;
+  std::vector<float> responses(nr_templates, 0.0f);
   for (std::size_t row_index = 0; row_index < (height - nr_template_vertical_bins); ++row_index)
   {
     for (std::size_t col_index = 0; col_index < (width - nr_template_horizontal_bins); ++col_index)
     {
-      std::vector<float> responses (nr_templates, 0.0f);
+      std::fill(responses.begin(), responses.end(), 0.0f);
 
       for (std::size_t modality_index = 0; modality_index < nr_modalities; ++modality_index)
       {
