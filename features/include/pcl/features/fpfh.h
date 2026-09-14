@@ -179,6 +179,24 @@ namespace pcl
 
     protected:
 
+      /** \brief Scalar implementation of the weighted FPFH composition.
+        * Not intended for direct use: \ref weightPointSPFHSignature dispatches to it
+        * when the RVV implementation is unavailable or declines the input.
+        * \param[in] hist_f1 the histogram feature vector of \a f1 values over the given patch
+        * \param[in] hist_f2 the histogram feature vector of \a f2 values over the given patch
+        * \param[in] hist_f3 the histogram feature vector of \a f3 values over the given patch
+        * \param[in] indices the point indices of p_idx's k-neighborhood in the point cloud
+        * \param[in] dists the distances from p_idx to all its k-neighbors
+        * \param[out] fpfh_histogram the resultant FPFH histogram representing the feature at the query point
+        */
+      void
+      weightPointSPFHSignatureStandard (const Eigen::MatrixXf &hist_f1,
+                                        const Eigen::MatrixXf &hist_f2,
+                                        const Eigen::MatrixXf &hist_f3,
+                                        const pcl::Indices &indices,
+                                        const std::vector<float> &dists,
+                                        Eigen::VectorXf &fpfh_histogram);
+
       /** \brief Estimate the set of all SPFH (Simple Point Feature Histograms) signatures for the input cloud
         * \param[out] spf_hist_lookup a lookup table for all the SPF feature indices
         * \param[out] hist_f1 the resultant SPFH histogram for feature f1

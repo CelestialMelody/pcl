@@ -45,7 +45,92 @@
 #include <pcl/common/point_tests.h> // for pcl::isFinite
 #include <pcl/features/pfh_tools.h>
 
+#if defined(__RVV10__)
+#include <riscv_vector.h>
+#endif
+
+#include <cstddef> // for std::ptrdiff_t
 #include <set> // for std::set
+
+#if defined(__RVV10__)
+namespace pcl::detail {
+
+inline bool
+weightFPFHSignature33RVV(const Eigen::MatrixXf& hist_f1,
+                         const Eigen::MatrixXf& hist_f2,
+                         const Eigen::MatrixXf& hist_f3,
+                         const pcl::Indices& indices,
+                         const std::vector<float>& dists,
+                         Eigen::VectorXf& fpfh_histogram)
+{
+  // The accumulation below assumes the default 33 bin FPFH layout, so it only runs
+  // when all three histograms use the expected bin count and every row index is
+  // addressable. Anything else falls back to the generic scalar path.
+  constexpr Eigen::Index nr_bins = 11;
+  constexpr Eigen::Index nr_bins_total = 33;
+  if (indices.size() != dists.size() || hist_f1.cols() != nr_bins ||
+      hist_f2.cols() != nr_bins || hist_f3.cols() != nr_bins ||
+      hist_f1.rows() != hist_f2.rows() || hist_f1.rows() != hist_f3.rows())
+    return false;
+
+  const Eigen::Index rows = hist_f1.rows();
+  for (const auto index : indices) {
+    if (index < 0 || static_cast<Eigen::Index>(index) >= rows)
+      return false;
+  }
+
+  fpfh_histogram.setZero(nr_bins_total);
+  const std::ptrdiff_t bin_stride_bytes =
+      static_cast<std::ptrdiff_t>(rows * static_cast<Eigen::Index>(sizeof(float)));
+
+  for (std::size_t neighbor = 0; neighbor < indices.size(); ++neighbor) {
+    if (dists[neighbor] == 0.0f)
+      continue;
+
+    const Eigen::Index row = static_cast<Eigen::Index>(indices[neighbor]);
+    const float weight = 1.0f / dists[neighbor];
+    const float* bases[3] = {
+        hist_f1.data() + row, hist_f2.data() + row, hist_f3.data() + row};
+
+    for (Eigen::Index segment = 0; segment < 3; ++segment) {
+      for (Eigen::Index bin = 0; bin < nr_bins;) {
+        const std::size_t vl =
+            __riscv_vsetvl_e32m2(static_cast<std::size_t>(nr_bins - bin));
+        const vfloat32m2_t source =
+            __riscv_vlse32_v_f32m2(bases[segment] + bin * rows, bin_stride_bytes, vl);
+        const vfloat32m2_t accumulated =
+            __riscv_vle32_v_f32m2(fpfh_histogram.data() + segment * nr_bins + bin, vl);
+        __riscv_vse32_v_f32m2(fpfh_histogram.data() + segment * nr_bins + bin,
+                              __riscv_vfmacc_vf_f32m2(accumulated, weight, source, vl),
+                              vl);
+        bin += static_cast<Eigen::Index>(vl);
+      }
+    }
+  }
+
+  for (Eigen::Index segment = 0; segment < 3; ++segment) {
+    double sum = 0.0;
+    for (Eigen::Index bin = 0; bin < nr_bins; ++bin)
+      sum += fpfh_histogram[segment * nr_bins + bin];
+
+    const float scale = sum == 0.0 ? 0.0f : static_cast<float>(100.0 / sum);
+    for (Eigen::Index bin = 0; bin < nr_bins;) {
+      const std::size_t vl =
+          __riscv_vsetvl_e32m2(static_cast<std::size_t>(nr_bins - bin));
+      const vfloat32m2_t values =
+          __riscv_vle32_v_f32m2(fpfh_histogram.data() + segment * nr_bins + bin, vl);
+      __riscv_vse32_v_f32m2(fpfh_histogram.data() + segment * nr_bins + bin,
+                            __riscv_vfmul_vf_f32m2(values, scale, vl),
+                            vl);
+      bin += static_cast<Eigen::Index>(vl);
+    }
+  }
+
+  return true;
+}
+
+} // namespace pcl::detail
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointInT, typename PointNT, typename PointOutT> bool
@@ -111,7 +196,23 @@ pcl::FPFHEstimation<PointInT, PointNT, PointOutT>::weightPointSPFHSignature (
     const Eigen::MatrixXf &hist_f1, const Eigen::MatrixXf &hist_f2, const Eigen::MatrixXf &hist_f3,
     const pcl::Indices &indices, const std::vector<float> &dists, Eigen::VectorXf &fpfh_histogram)
 {
+#if defined(__RVV10__)
+  if (pcl::detail::weightFPFHSignature33RVV(
+          hist_f1, hist_f2, hist_f3, indices, dists, fpfh_histogram))
+    return;
+#endif
+  weightPointSPFHSignatureStandard (
+      hist_f1, hist_f2, hist_f3, indices, dists, fpfh_histogram);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointInT, typename PointNT, typename PointOutT> void
+pcl::FPFHEstimation<PointInT, PointNT, PointOutT>::weightPointSPFHSignatureStandard (
+    const Eigen::MatrixXf &hist_f1, const Eigen::MatrixXf &hist_f2, const Eigen::MatrixXf &hist_f3,
+    const pcl::Indices &indices, const std::vector<float> &dists, Eigen::VectorXf &fpfh_histogram)
+{
   assert (indices.size () == dists.size ());
+
   // @TODO: use arrays
   double sum_f1 = 0.0, sum_f2 = 0.0, sum_f3 = 0.0;
   float weight = 0.0, val_f1, val_f2, val_f3;
