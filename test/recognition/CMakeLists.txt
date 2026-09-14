@@ -11,6 +11,10 @@ if(NOT build)
   return()
 endif()
 
+PCL_ADD_TEST(recognition_dotmod test_dotmod
+             FILES test_dotmod.cpp
+             LINK_WITH pcl_gtest pcl_recognition)
+
 PCL_ADD_TEST(a_recognition_ism_test test_recognition_ism
              FILES test_recognition_ism.cpp
              LINK_WITH pcl_gtest pcl_io pcl_features pcl_recognition
