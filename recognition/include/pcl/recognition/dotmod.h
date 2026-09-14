@@ -85,11 +85,41 @@ namespace pcl
                             std::size_t template_anker_y,
                             const RegionXY & region);
 
+      /** \brief Detect templates and report every response above the threshold.
+        * Dispatches to a vectorized implementation when one is available for the build,
+        * otherwise to \ref detectTemplatesStandard. Both produce the same detections in
+        * the same order; callers never select the implementation themselves.
+        * \param[in] modalities the modalities to match against
+        * \param[in] template_response_threshold the response threshold
+        * \param[out] detections the resulting detections, in sliding-window order
+        * \param[in] bin_size the quantization bin size
+        */
       void
       detectTemplates (const std::vector<DOTModality*> & modalities,
                        float template_response_threshold,
                        std::vector<DOTMODDetection> & detections,
                        const std::size_t bin_size) const;
+
+    protected:
+      /** \brief Scalar implementation of \ref detectTemplates.
+        * Not intended for direct use; see \ref detectTemplates.
+        */
+      void
+      detectTemplatesStandard (const std::vector<DOTModality*> & modalities,
+                               float template_response_threshold,
+                               std::vector<DOTMODDetection> & detections,
+                               const std::size_t bin_size) const;
+
+#if defined(__RVV10__)
+      /** \brief RISC-V Vector implementation of \ref detectTemplates.
+        * Not intended for direct use; see \ref detectTemplates.
+        */
+      void
+      detectTemplatesRVV (const std::vector<DOTModality*> & modalities,
+                          float template_response_threshold,
+                          std::vector<DOTMODDetection> & detections,
+                          const std::size_t bin_size) const;
+#endif
 
       inline const DenseQuantizedMultiModTemplate &
       getTemplate (std::size_t template_id) const
