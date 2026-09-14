@@ -17,6 +17,9 @@ PCL_ADD_TEST(features_ptr test_features_ptr
 PCL_ADD_TEST(feature_gradient_estimation test_gradient_estimation
              FILES test_gradient_estimation.cpp
              LINK_WITH pcl_gtest pcl_features)
+PCL_ADD_TEST(feature_fpfh_weighting test_fpfh_weighting
+             FILES test_fpfh_weighting.cpp
+             LINK_WITH pcl_gtest pcl_features)
 PCL_ADD_TEST(feature_rift_estimation test_rift_estimation
              FILES test_rift_estimation.cpp
              LINK_WITH pcl_gtest pcl_features)
