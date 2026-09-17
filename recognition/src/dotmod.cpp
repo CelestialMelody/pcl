@@ -4,7 +4,7 @@
  *  Point Cloud Library (PCL) - www.pointclouds.org
  *  Copyright (c) 2010-2011, Willow Garage, Inc.
  *
- *  All rights reserved. 
+ *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -97,7 +97,7 @@ pcl::DOTMOD::
 ~DOTMOD() = default;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-size_t 
+size_t
 pcl::DOTMOD::
 createAndAddTemplate (const std::vector<pcl::DOTModality*> & modalities,
                       const std::vector<pcl::MaskMap*> & masks,
@@ -150,7 +150,7 @@ createAndAddTemplate (const std::vector<pcl::DOTModality*> & modalities,
 //////////////////////////////////////////////////////////////////////////////////////////////
 void
 pcl::DOTMOD::
-detectTemplates (const std::vector<DOTModality*> & modalities, 
+detectTemplates (const std::vector<DOTModality*> & modalities,
                  const float template_response_threshold,
                  std::vector<DOTMODDetection> & detections,
                  const std::size_t bin_size ) const
