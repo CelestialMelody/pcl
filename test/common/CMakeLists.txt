@@ -28,6 +28,9 @@ PCL_ADD_TEST(common_gaussian test_gaussian FILES test_gaussian.cpp LINK_WITH pcl
 PCL_ADD_TEST(common_operators test_operators FILES test_operators.cpp LINK_WITH pcl_gtest pcl_common)
 PCL_ADD_TEST(common_eigen test_eigen FILES test_eigen.cpp LINK_WITH pcl_gtest pcl_common)
 PCL_ADD_TEST(common_intensity test_intensity FILES test_intensity.cpp LINK_WITH pcl_gtest pcl_common)
+PCL_ADD_TEST(common_rvv_point_kernels test_rvv_point_kernels
+             FILES test_rvv_point_kernels.cpp
+             LINK_WITH pcl_gtest pcl_common)
 PCL_ADD_TEST(common_generator test_generator FILES test_generator.cpp LINK_WITH pcl_gtest pcl_common)
 PCL_ADD_TEST(common_io test_common_io FILES test_io.cpp LINK_WITH pcl_gtest pcl_common)
 PCL_ADD_TEST(common_copy_make_borders test_copy_make_borders FILES test_copy_make_borders.cpp LINK_WITH pcl_gtest pcl_common)
