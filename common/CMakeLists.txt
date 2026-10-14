@@ -55,6 +55,9 @@ set(incs
   include/pcl/memory.h
   include/pcl/exceptions.h
   include/pcl/field_traits.h
+  include/pcl/rvv_point_traits.h
+  include/pcl/rvv_point_load.h
+  include/pcl/rvv_point_store.h
   include/pcl/pcl_base.h
   include/pcl/pcl_exports.h
   include/pcl/pcl_macros.h
@@ -149,6 +152,8 @@ set(common_incs_impl
 
 set(impl_incs
   include/pcl/impl/field_traits.hpp
+  include/pcl/impl/rvv_point_load.hpp
+  include/pcl/impl/rvv_point_store.hpp
   include/pcl/impl/pcl_base.hpp
   include/pcl/impl/instantiate.hpp
   include/pcl/impl/point_types.hpp
